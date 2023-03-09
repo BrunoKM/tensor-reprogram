@@ -28,7 +28,8 @@ class AdamParamGroup(SGDParamGroup):
 def get_mup_sgd_param_groups(
         named_params: Sequence[tuple[str, nn.Parameter]],
         init_lr_scale: Union[float, dict[str, float]],
-          param_inf_types: dict[str, InfType]) -> list[SGDParamGroup]:
+        param_inf_types: dict[str, InfType],
+    ) -> list[SGDParamGroup]:
     """
     # TODO: Make it work with weight decay somehow
 
