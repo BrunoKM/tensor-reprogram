@@ -11,7 +11,6 @@ idna==3.4
 omegaconf==2.3.0
 packaging==23.0
 pathtools==0.1.2
--e git+ssh://git@github.com/BrunoKM/phenomenological-bayes.git@3dd31da69b9e104e1d84438be25dda3584b60fca#egg=PhenomBayes
 protobuf==4.22.0
 psutil==5.9.4
 PyYAML==6.0
