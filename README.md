@@ -8,6 +8,13 @@ Install this repository in editable mode
 ```
 pip install -e .
 ```
+### Weights and Biases Logging Setup:
+Go to https://wandb.ai/ and log in to retrieve your API key. Make sure you have `wandb` pip installed, and run the following from the command line:
+```wandb login```
+
+See https://docs.wandb.ai/quickstart for more info.
+
+If running from an automated environement (e.g. a cluster), you can set-up wandb using environment variables (see https://docs.wandb.ai/guides/track/environment-variables).
 
 ## Run:
 ```

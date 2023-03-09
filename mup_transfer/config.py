@@ -27,6 +27,8 @@ class OptimizerConfig:
 
 @dataclass
 class ConfigBase:
+    num_epochs: int = 10
+
     architecture: ArchitectureConfig = field(default_factory=ArchitectureConfig)
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     optimisation: OptimizerConfig = field(default_factory=OptimizerConfig)

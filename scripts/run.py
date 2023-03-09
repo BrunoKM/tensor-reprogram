@@ -1,10 +1,13 @@
-from functools import reduce
-from pathlib import Path
 import hydra
+import numpy as np
 import omegaconf
 import torch
-from mup_transfer.architectures.mlp import mlp_constructor
 import wandb
+
+from functools import reduce
+from pathlib import Path
+from mup_transfer.architectures.mlp import mlp_constructor
+from hydra.core.config_store import ConfigStore
 
 from mup_transfer.datasets.cifar10 import cifar10_constructor
 from mup_transfer.config import ConfigBase
@@ -15,7 +18,12 @@ from mup_transfer.mup.init import mup_initialise
 from mup_transfer.mup.optim_params import get_mup_sgd_param_groups
 
 
-@hydra.main(config_path="configs/", config_name="defaults")
+# Register the defaults from the structured dataclass config schema:
+cs = ConfigStore.instance()
+cs.store(name="conf", node=ConfigBase)
+
+
+@hydra.main(config_path="configs/", config_name="conf", version_base=None)
 def main(cfg: ConfigBase):
     """
     cfg is typed as ConfigBase for duck-typing, but during runtime it's actually an OmegaConf object.
@@ -25,7 +33,8 @@ def main(cfg: ConfigBase):
 
     # --- Set up logging
     logger = WandbLogger(
-        project_name="phenom-bayes",
+        project="tensor-reprogram",
+        entity="tensor-programs-v-reproduction",  # Log to the team's entity project
         # This is needed to make WandB and Hydra play nicely:
         settings=wandb.Settings(start_method="thread"),
     )
@@ -68,6 +77,14 @@ def main(cfg: ConfigBase):
     # model_forward = torch.compile(model)
 
     # --- Training loop
+    for epoch in range(cfg.num_epochs):
+        for batch in range(10):
+            logger.log_scalar("train.loss", np.random.randn())
+            logger.log_scalar("train.accuracy", np.random.randn())
+            logger.increment_step()
+
+        for eval_dataset_name, eval_dataset in eval_datasets.items():
+            logger.log_scalar(f"{eval_dataset_name}.loss", np.random.randn())
 
     # --- Save the final model
 
