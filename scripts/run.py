@@ -41,7 +41,9 @@ def main(cfg: ConfigBase):
 
     # --- Construct and get the dataset
     # TODO: Make general and dependent on the config
-    train_dataset, eval_datasets = cifar10_constructor(Path("./data"))
+    train_dataset, eval_datasets = cifar10_constructor(
+        Path(__file__).parent.parent / "data",  # Default data directory at the root of repostiory
+    )
 
     # --- Construct the model
 
