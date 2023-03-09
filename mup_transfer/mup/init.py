@@ -70,13 +70,3 @@ def mup_initialise_param(param: nn.Parameter, inf_type: InfType, init_scale: flo
             raise ValueError(f"Unrecognised infinite width type: {inf_type}")
     # Initialise in place.
     nn.init.normal_(param, mean=0.0, std=init_scale * scale_multiplier)
-
-
-
-def mup_scale(
-    named_params: Sequence[tuple[str, nn.Parameter]],
-    param_inf_types: dict[str, InfType],
-    init_scale: Union[float, dict[str, float]] = 1.0,
-):
-    # TODO
-    ...
