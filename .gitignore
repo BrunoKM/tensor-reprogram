@@ -130,4 +130,7 @@ dmypy.json
 
 # Visual Studio Code
 .vscode
+# Repository-specific output and caching (e.g. datasets) directories:
+data/
 outputs/
+wandb/
