@@ -1,4 +1,5 @@
 from functools import reduce
+from pathlib import Path
 import hydra
 import omegaconf
 import torch
@@ -31,7 +32,7 @@ def main(cfg: ConfigBase):
 
     # --- Construct and get the dataset
     # TODO: Make general and dependent on the config
-    train_dataset, eval_datasets = cifar10_constructor()
+    train_dataset, eval_datasets = cifar10_constructor(Path("./data"))
 
     # --- Construct the model
 
@@ -64,7 +65,7 @@ def main(cfg: ConfigBase):
     )
 
     # --- Compile the model
-    model_forward = torch.compile(model)
+    # model_forward = torch.compile(model)
 
     # --- Training loop
 
