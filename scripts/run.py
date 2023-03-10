@@ -13,9 +13,10 @@ from mup_transfer.datasets.cifar10 import cifar10_constructor
 from mup_transfer.config import ConfigBase
 from mup_transfer.datasets.util import get_input_shape, get_output_size
 from mup_transfer.loggers.wandb_logger import WandbLogger
-from mup_transfer.mup.inf_types import infer_inf_type_sequential_model
+from mup_transfer.mup.inf_types import get_inf_types, infer_inf_type_sequential_model
 from mup_transfer.mup.init import mup_initialise
 from mup_transfer.mup.optim_params import get_mup_sgd_param_groups
+from mup_transfer.mup.utils import get_param_name
 
 
 # Register the defaults from the structured dataclass config schema:
@@ -55,7 +56,11 @@ def main(cfg: ConfigBase):
     )
 
     # Initialise the model with mup
-    param_inf_types = infer_inf_type_sequential_model(model)
+    param_inf_types = get_inf_types(
+        model=model,
+        input_weights_names=[get_param_name(model, model[0].weight)],  # type: ignore
+        output_weights_names=[get_param_name(model, model[-1].weight)],  # type: ignore
+    )
     mup_initialise(
         named_params=(named_params := list(model.named_parameters())),
         param_inf_types=param_inf_types,
