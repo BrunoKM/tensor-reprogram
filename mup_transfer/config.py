@@ -13,6 +13,14 @@ class DatasetConfig:
     pass
 
 
+@dataclass
+class DataLoaderConfig:
+    train_batch_size: int = 128
+    eval_batch_size: int = 512
+    num_workers: int = 4
+    pin_memory: bool = False
+
+
 class OptimizerType(str, enum.Enum):
     SGD = "SGD"
     ADAM = "ADAM"
@@ -24,9 +32,11 @@ class OptimizerConfig:
     lr: float = 1e-3
     optimizer_kwargs: dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass
 class InitialisationConfig:
     init_scale: float = 1.0
+
 
 @dataclass
 class ConfigBase:
@@ -34,5 +44,6 @@ class ConfigBase:
 
     architecture: ArchitectureConfig = field(default_factory=ArchitectureConfig)
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
+    data_loader: DataLoaderConfig = field(default_factory=DataLoaderConfig)
     optimisation: OptimizerConfig = field(default_factory=OptimizerConfig)
     initialisation: InitialisationConfig = field(default_factory=InitialisationConfig)

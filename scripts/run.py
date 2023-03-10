@@ -9,6 +9,7 @@ from pathlib import Path
 from mup_transfer.architectures.mlp import mlp_constructor
 from hydra.core.config_store import ConfigStore
 
+from mup_transfer.data_utils import get_data_loaders
 from mup_transfer.datasets.cifar10 import cifar10_constructor
 from mup_transfer.config import ConfigBase
 from mup_transfer.datasets.util import get_input_shape, get_output_size
@@ -42,7 +43,15 @@ def main(cfg: ConfigBase):
     # --- Construct and get the dataset
     # TODO: Make general and dependent on the config
     train_dataset, eval_datasets = cifar10_constructor(
-        Path(__file__).parent.parent / "data",  # Default data directory at the root of repostiory
+        Path(__file__).parent.parent / "data",  # Default data directory at the root of repository
+    )
+    train_loader, eval_loaders = get_data_loaders(
+        train_dataset,
+        eval_datasets,
+        train_batch_size=cfg.data_loader.train_batch_size,
+        eval_batch_size=cfg.data_loader.eval_batch_size,
+        num_workers=cfg.data_loader.num_workers,
+        pin_memory=cfg.data_loader.pin_memory,
     )
 
     # --- Construct the model
