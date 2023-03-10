@@ -33,3 +33,30 @@ class ConfigBase:
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     optimisation: OptimizerConfig = field(default_factory=OptimizerConfig)
 
+
+@dataclass
+class ArchitectureTransformerConfig:
+    bias: bool = False
+    d_model: int = 256
+    ffn_ratio: int = 1
+    nlayers: int = 2
+    nhead: int = 2
+    dropout: float = 0.2
+    tied: bool = False
+    init_var: float = 1
+    ntokens: int = xx
+    att_mult: int = 1
+    output_mul: int = 1
+    standparam: bool = False    # TODO
+
+
+@dataclass
+class ConfigTransformer:
+    num_epochs: int = 40
+    batch_size: int = 20
+    bptt: int = 35
+    seed: int = 1111
+
+    architecture: ArchitectureConfig = field(default_factory=ArchitectureTransformerConfig)
+    dataset: DatasetConfig = field(default_factory=DatasetConfig)
+    optimisation: OptimizerConfig = field(default_factory=OptimizerConfig)
