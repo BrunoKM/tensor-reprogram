@@ -1,5 +1,4 @@
 import hydra
-import numpy as np
 import omegaconf
 import torch
 import wandb
@@ -17,6 +16,10 @@ from mup_transfer.loggers.wandb_logger import WandbLogger
 from mup_transfer.mup.inf_types import infer_inf_type_sequential_model
 from mup_transfer.mup.init import mup_initialise
 from mup_transfer.mup.optim_params import get_mup_sgd_param_groups
+from mup_transfer.train import train
+from mup_transfer.eval import eval
+
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 # Register the defaults from the structured dataclass config schema:
@@ -62,6 +65,7 @@ def main(cfg: ConfigBase):
         hidden_sizes=[128, 128],
         output_size=get_output_size(train_dataset),
     )
+    model.to(DEVICE)
 
     # Initialise the model with mup
     param_inf_types = infer_inf_type_sequential_model(model)
@@ -83,23 +87,30 @@ def main(cfg: ConfigBase):
         params=param_groups,  # type: ignore
         lr=cfg.optimisation.lr,
     )
+    # TODO: Maybe add lr schedule.
 
     # --- Compile the model
     # model_forward = torch.compile(model)
 
-    # --- Training loop
-    for epoch in range(cfg.num_epochs):
-        for batch in range(10):
-            logger.log_scalar("train.loss", np.random.randn())
-            logger.log_scalar("train.accuracy", np.random.randn())
-            logger.increment_step()
+    # --- Training and evaluation loop
+    for _ in range(cfg.num_epochs):
+        train_loss, train_accuracy = train(model, train_loader, optim, DEVICE)
+        logger.log_scalar("train.loss", train_loss)
+        logger.log_scalar("train.accuracy", train_accuracy)
+        logger.increment_step()
 
-        for eval_dataset_name, eval_dataset in eval_datasets.items():
-            logger.log_scalar(f"{eval_dataset_name}.loss", np.random.randn())
+        for eval_dataset_name, eval_loader in eval_loaders.items():
+            eval_loss, eval_accuracy = eval(model, eval_loader, DEVICE)
+            logger.log_scalar(f"{eval_dataset_name}.loss", eval_loss)
+            logger.log_scalar("train.accuracy", eval_accuracy)
 
     # --- Save the final model
-
-    # --- Final evaluations
+    model_to_save = model.module if isinstance(model, torch.nn.DataParallel) else model
+    file_name = "test_run"  # TODO: Decide on naming scheme.
+    torch.save(
+        model_to_save.state_dict(),
+        Path(__file__).parent.parent / f"trained_models/{file_name}",  # Default directory at the root of repository for trained models
+    )
 
 
 if __name__ == "__main__":
