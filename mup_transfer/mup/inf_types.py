@@ -6,7 +6,7 @@ in the infinite width limit.
 
 from enum import Enum
 from operator import itemgetter
-from typing import Union
+from typing import Sequence, Union
 
 import torch
 import torch.nn as nn
@@ -38,19 +38,27 @@ def infer_inf_type_sequential_model(model: torch.nn.Sequential) -> dict[str, Inf
         key=itemgetter(0),  # Sort by param. name
     )
     weight_names = [name for name, param in named_params if len(param.shape) >= 2]
-    bias_names = [name for name, param in named_params if len(param.shape) <= 1]
 
     input_layer_weight_name = weight_names[0]
     output_layer_weight_name = weight_names[-1]
+    return get_inf_types(model, [input_layer_weight_name], [output_layer_weight_name])
+
+
+def get_inf_types(model: torch.nn.Module, input_weights_names: Sequence[str], output_weights_names: Sequence[str]) -> dict[str, InfType]:
+    """
+    Given a model, and a manual specification by the user of which parameters are input weights and
+    which are output weights, return a dictionary mapping the names of the parameters to their
+    infinite width type.
+    """
+    named_params: list[tuple[str, nn.Parameter]] = list(model.named_parameters())
+    bias_names = [name for name, param in named_params if len(param.shape) <= 1]
 
     # Get a mapping from inf. type to list of param. names of that inf. type
     inf_type_groups: dict[InfType, list[str]] = {
-        InfType.INPUT_OR_BIAS: [input_layer_weight_name] + bias_names,
-        InfType.OUTPUT_WEIGHT: [output_layer_weight_name],
-        InfType.HIDDEN_WEIGHT: [name for name, param in named_params if name not in {input_layer_weight_name, output_layer_weight_name, *bias_names}],
+        InfType.INPUT_OR_BIAS: list(input_weights_names) + bias_names,
+        InfType.OUTPUT_WEIGHT: list(output_weights_names),
+        InfType.HIDDEN_WEIGHT: [name for name, param in named_params if name not in {*set(input_weights_names), *set(output_weights_names), *bias_names}],
     }
     # Invert the mapping to be a mapping from param. name to inf. type
     return {name: inf_type for inf_type, names in inf_type_groups.items() for name in names}
-    
-
 
