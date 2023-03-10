@@ -62,9 +62,9 @@ def mup_initialise_param(param: nn.Parameter, inf_type: InfType, init_scale: flo
     fan_in = param.shape[1] if len(param.shape) >= 2 else 1
 
     match inf_type:
-        case InfType.INPUT_OR_BIAS | InfType.OUTPUT_WEIGHT:
+        case InfType.INPUT_OR_BIAS | InfType.HIDDEN_WEIGHT:
             scale_multiplier = (1 / fan_in) ** 0.5
-        case InfType.HIDDEN_WEIGHT:
+        case InfType.OUTPUT_WEIGHT:
             scale_multiplier = (1 / fan_in)
         case _:
             raise ValueError(f"Unrecognised infinite width type: {inf_type}")
