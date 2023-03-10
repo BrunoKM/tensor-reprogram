@@ -59,11 +59,11 @@ def main(cfg: ConfigBase):
     mup_initialise(
         named_params=(named_params := list(model.named_parameters())),
         param_inf_types=param_inf_types,
-        init_scale=1.0,  # TODO make configurable via config
+        init_scale=cfg.initialisation.init_scale,
     )
     param_groups = get_mup_sgd_param_groups(
         named_params=named_params,
-        init_lr_scale=1e-3,  # TODO make configurable via config
+        init_lr_scale=cfg.optimisation.lr,
         param_inf_types=param_inf_types,
     )
 
@@ -72,7 +72,7 @@ def main(cfg: ConfigBase):
     # TODO make optim type configurable via config.
     optim = torch.optim.SGD(
         params=param_groups,  # type: ignore
-        lr=1e-3,  # TODO make configurable via config (although should be specified in all param_groups already)
+        lr=cfg.optimisation.lr,
     )
 
     # --- Compile the model

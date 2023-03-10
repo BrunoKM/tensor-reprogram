@@ -24,6 +24,9 @@ class OptimizerConfig:
     lr: float = 1e-3
     optimizer_kwargs: dict[str, Any] = field(default_factory=dict)
 
+@dataclass
+class InitialisationConfig:
+    init_scale: float = 1.0
 
 @dataclass
 class ConfigBase:
@@ -32,4 +35,4 @@ class ConfigBase:
     architecture: ArchitectureConfig = field(default_factory=ArchitectureConfig)
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     optimisation: OptimizerConfig = field(default_factory=OptimizerConfig)
-
+    initialisation: InitialisationConfig = field(default_factory=InitialisationConfig)
