@@ -38,7 +38,6 @@ def infer_inf_type_sequential_model(model: torch.nn.Sequential) -> dict[str, Inf
         key=itemgetter(0),  # Sort by param. name
     )
     weight_names = [name for name, param in named_params if len(param.shape) >= 2]
-    bias_names = [name for name, param in named_params if len(param.shape) <= 1]
 
     input_layer_weight_name = weight_names[0]
     output_layer_weight_name = weight_names[-1]
@@ -52,7 +51,6 @@ def get_inf_types(model: torch.nn.Module, input_weights_names: Sequence[str], ou
     infinite width type.
     """
     named_params: list[tuple[str, nn.Parameter]] = list(model.named_parameters())
-    weight_names = [name for name, param in named_params if len(param.shape) >= 2]
     bias_names = [name for name, param in named_params if len(param.shape) <= 1]
 
     # Get a mapping from inf. type to list of param. names of that inf. type
