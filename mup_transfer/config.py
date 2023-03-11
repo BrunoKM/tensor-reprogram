@@ -60,7 +60,7 @@ class ArchitectureTransformerConfig(ArchitectureConfig):
     tied: bool = False
     init_var: float = 1
     ntokens: int = 33278
-    att_mult: int = 1
+    attn_mult: int = 1
     output_mul: int = 1
     standparam: bool = False    # TODO
 

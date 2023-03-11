@@ -24,10 +24,9 @@ The only things we modified from the original pytorch Transformer example are
 def transformer_constructor(
     args
     ):
-    print(args)
     return TransformerModel(args, args.ntokens, ninp=args.d_model, nhead=args.nhead, nhid=args.d_model*args.ffn_ratio, nlayers=args.nlayers, dropout=args.dropout,
                 tied=args.tied, bias=args.bias, encoder_var=args.init_var, 
-                decoder_var=args.init_var, standparam=args.standparam).to(args.device)
+                decoder_var=args.init_var, standparam=args.standparam)
 
 # Temporarily leave PositionalEncoding module here. Will be moved somewhere else.
 class PositionalEncoding(nn.Module):
@@ -303,7 +302,7 @@ class MultiheadAttention(Module):
         # embed_dim == d_model
         # self.init_method = init_method_normal((encoder_var / embed_dim)**0.5)
 
-        self._reset_parameters()
+        # self._reset_parameters()
 
     # def _reset_parameters(self):
     #     if self._qkv_same_embed_dim:
