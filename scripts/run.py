@@ -1,9 +1,11 @@
+import os
 import hydra
 import omegaconf
 import torch
 import torch.nn as nn
 import tqdm
 import wandb
+import logging
 
 from functools import reduce
 from pathlib import Path
@@ -27,14 +29,15 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Register the defaults from the structured dataclass config schema:
 cs = ConfigStore.instance()
-cs.store(name="conf", node=ConfigBase)
+cs.store(name="config_base", node=ConfigBase)
 
 
-@hydra.main(config_path="configs/", config_name="conf", version_base=None)
+@hydra.main(config_path="configs/", config_name="defaults", version_base=None)
 def main(cfg: ConfigBase):
     """
     cfg is typed as ConfigBase for duck-typing, but during runtime it's actually an OmegaConf object.
     """
+    logging.info(f"Hydra current working directory: {os.getcwd()}")
     # --- Runtime setup (logging directories, etc.)
     wandb.config = omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
 
