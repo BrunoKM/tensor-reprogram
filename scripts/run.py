@@ -116,7 +116,7 @@ def main(config: ConfigBase):
     )
     param_groups = get_mup_sgd_param_groups(
         named_params=named_params,
-        init_lr_scale=config.optimisation.lr,
+        init_lr_scale=config.optimization.lr,
         param_inf_types=param_inf_types,
     )
 
@@ -125,7 +125,7 @@ def main(config: ConfigBase):
     # TODO make optim type configurable via config.
     optim = torch.optim.SGD(
         params=param_groups,  # type: ignore
-        lr=config.optimisation.lr,
+        lr=config.optimization.lr,
     )
     # TODO: Maybe add lr schedule.
 
@@ -133,15 +133,24 @@ def main(config: ConfigBase):
     # model_forward = torch.compile(model)
 
     # --- Training and evaluation loop
-    for _ in tqdm.tqdm(range(config.num_epochs), desc="Training epochs"):
-        epoch_loss, epoch_accuracy = train(model, train_loader, optim, DEVICE)
-        logger.log_scalar("train.epoch_loss", epoch_loss)
-        logger.log_scalar("train.epoch_accuracy", epoch_accuracy)
-
+    def eval_and_log():
         for eval_dataset_name, eval_loader in eval_loaders.items():
             eval_loss, eval_accuracy = eval(model, eval_loader, DEVICE)
             logger.log_scalar(f"{eval_dataset_name}.loss", eval_loss)
             logger.log_scalar(f"{eval_dataset_name}.accuracy", eval_accuracy)
+
+    eval_and_log()
+    for _ in tqdm.tqdm(range(config.num_epochs), desc="Training epochs"):
+        epoch_loss, epoch_accuracy = train(
+            model=model,
+            train_loader=train_loader,
+            optim=optim,
+            device=DEVICE,
+            logger=logger,
+        )
+        logger.log_scalar("train.epoch_loss", epoch_loss)
+        logger.log_scalar("train.epoch_accuracy", epoch_accuracy)
+        eval_and_log()
 
     # --- Save the final model
     model_to_save = model.module if isinstance(model, torch.nn.DataParallel) else model

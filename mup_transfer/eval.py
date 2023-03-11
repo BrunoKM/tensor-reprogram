@@ -11,11 +11,12 @@ def eval(
     model.eval()
     eval_loss = 0.
     n_correct = 0
-    for X, y in eval_loader:
-        X, y = X.to(device), y.to(device)
-        out = model(X)
-        loss = F.cross_entropy(out, y, reduction='sum')
-        eval_loss += loss
-        n_correct += (out.argmax(-1) == y).sum()
-    N = len(eval_loader.dataset)
-    return eval_loss.item() / N, n_correct.item() / N
+    with torch.no_grad():
+        for X, y in eval_loader:
+            X, y = X.to(device), y.to(device)
+            out = model(X)
+            loss = F.cross_entropy(out, y, reduction='sum')
+            eval_loss += loss.item()
+            n_correct += (out.argmax(-1) == y).sum().item()
+        N = len(eval_loader.dataset)
+    return eval_loss / N, n_correct / N

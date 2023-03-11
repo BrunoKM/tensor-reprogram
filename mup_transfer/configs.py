@@ -19,7 +19,7 @@ def register_configs():
         num_epochs=10,
         architecture_type=ArchitectureType.MLP,
         dataset_type=DatasetType.CIFAR10,
-        optimisation=OptimizerConfig(optimizer_type=OptimizerType.SGD),
+        optimization=OptimizerConfig(optimizer_type=OptimizerType.SGD),
         initialisation=InitialisationConfig(),
     )
 
@@ -27,7 +27,7 @@ def register_configs():
         num_epochs=40,
         architecture_type=ArchitectureType.TRANSFORMER,
         dataset_type=DatasetType.WIKITEXT,
-        optimisation=OptimizerConfig(optimizer_type=OptimizerType.ADAM),
+        optimization=OptimizerConfig(optimizer_type=OptimizerType.ADAM),
         initialisation=InitialisationConfig(),
     )
 

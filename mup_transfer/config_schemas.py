@@ -4,19 +4,19 @@ from typing import Any
 
 
 class ArchitectureType(str, enum.Enum):
-    MLP = "mlp"
-    TRANSFORMER = "transformer"
+    MLP = "MLP"
+    TRANSFORMER = "TRANSFORMER"
 
 
 class DatasetType(str, enum.Enum):
-    CIFAR10 = "cifar10"
-    WIKITEXT = "wikitext"
+    CIFAR10 = "CIFAR10"
+    WIKITEXT = "WIKITEXT"
 
 
 @dataclass
 class DataLoaderConfig:
     train_batch_size: int = 128
-    eval_batch_size: int = 512
+    eval_batch_size: int = 128
     num_workers: int = 4
     pin_memory: bool = False
     bptt: int = 35  # For sequence input
@@ -29,7 +29,7 @@ class OptimizerType(str, enum.Enum):
 
 @dataclass
 class OptimizerConfig:
-    optimizer_type: OptimizerType
+    optimizer_type: OptimizerType = OptimizerType.SGD
     lr: float = 1e-3
     optimizer_kwargs: dict[str, Any] = field(default_factory=dict)
 
@@ -53,6 +53,7 @@ class TransformerArchitectureConfig:
     att_mult: float = 1
     output_mul: float = 1
 
+
 @dataclass
 class MLPArchitectureConfig:
     add_bias: bool = True
@@ -64,8 +65,8 @@ class ConfigBase:
     num_epochs: int
     architecture_type: ArchitectureType
     dataset_type: DatasetType
-    optimisation: OptimizerConfig
-    initialisation: InitialisationConfig
+    optimization: OptimizerConfig = field(default_factory=OptimizerConfig)
+    initialisation: InitialisationConfig = field(default_factory=InitialisationConfig)
     transformer_config: TransformerArchitectureConfig = field(default_factory=TransformerArchitectureConfig)
     mlp_config: MLPArchitectureConfig = field(default_factory=MLPArchitectureConfig)
     data_loader: DataLoaderConfig = field(default_factory=DataLoaderConfig)
