@@ -41,6 +41,7 @@ class InitialisationConfig:
 @dataclass
 class ConfigBase:
     num_epochs: int = 10
+    seed: int = 1111
 
     architecture: ArchitectureConfig = field(default_factory=ArchitectureConfig)
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
@@ -66,12 +67,8 @@ class ArchitectureTransformerConfig(ArchitectureConfig):
 
 
 @dataclass
-class ConfigTransformer:
+class ConfigTransformer(ConfigBase):
     num_epochs: int = 40
-    batch_size: int = 20
     bptt: int = 35
-    seed: int = 1111
 
     architecture: ArchitectureConfig = field(default_factory=ArchitectureTransformerConfig)
-    dataset: DatasetConfig = field(default_factory=DatasetConfig)
-    optimisation: OptimizerConfig = field(default_factory=OptimizerConfig)
