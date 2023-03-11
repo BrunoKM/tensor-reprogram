@@ -119,7 +119,6 @@ def main(config: ConfigBase):
 
 
     # --- Construct the optimizer
-    # TODO make optim type configurable via config.
     if config.optimization.optimizer_type == OptimizerType.SGD:
         if config.use_mu_param:
             param_groups = get_mup_sgd_param_groups(
