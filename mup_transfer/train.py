@@ -33,8 +33,8 @@ def train(
 
         # Log metrics
         n_correct = (out.argmax(-1) == y).sum().detach().item()
-        logger.log_scalar("train.accuracy", n_correct / len(out))
-        logger.log_scalar("train.loss", loss.detach().item())
+        logger.log_scalar("train.batch_accuracy", n_correct / len(out))
+        logger.log_scalar("train.batch_loss", loss.detach().item())
         logger.increment_step()
 
         epoch_loss += loss.detach().item() * len(x)
