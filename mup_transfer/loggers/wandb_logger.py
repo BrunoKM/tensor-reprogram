@@ -11,7 +11,7 @@ class WandbLogger(LoggerBase):
         self._run = wandb.init(**wandb_params)
 
     def log_scalar(self, name: str, value: float, step: Optional[int] = None):
-        wandb.log({name: value}, step=step or self._step)
+        wandb.log({name: value}, step=self._step if step is None else step)
 
     def __del__(self):
         wandb.finish()

@@ -39,7 +39,6 @@ def main(cfg: ConfigBase):
     """
     logging.info(f"Hydra current working directory: {os.getcwd()}")
     # --- Runtime setup (logging directories, etc.)
-    wandb.config = omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
 
     # --- Set up logging
     logger = WandbLogger(
@@ -47,6 +46,8 @@ def main(cfg: ConfigBase):
         entity="tensor-programs-v-reproduction",  # Log to the team's entity project
         # This is needed to make WandB and Hydra play nicely:
         settings=wandb.Settings(start_method="thread"),
+        # Log the config to WandB
+        config=omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True),
     )
 
     # --- Construct and get the dataset
@@ -110,10 +111,9 @@ def main(cfg: ConfigBase):
 
     # --- Training and evaluation loop
     for _ in tqdm.tqdm(range(cfg.num_epochs), desc="Training epochs"):
-        train_loss, train_accuracy = train(model, train_loader, optim, DEVICE)
-        logger.log_scalar("train.loss", train_loss)
-        logger.log_scalar("train.accuracy", train_accuracy)
-        logger.increment_step()
+        epoch_loss, epoch_accuracy = train(model, train_loader, optim, DEVICE)
+        logger.log_scalar("train.epoch_loss", epoch_loss)
+        logger.log_scalar("train.epoch_accuracy", epoch_accuracy)
 
         for eval_dataset_name, eval_loader in eval_loaders.items():
             eval_loss, eval_accuracy = eval(model, eval_loader, DEVICE)
