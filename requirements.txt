@@ -22,3 +22,6 @@ smmap==5.0.0
 urllib3==1.26.14
 wandb==0.13.10
 tqdm==4.65.0
+torchtext==0.14.1
+torchdata==0.5.1
+fastai==2.7.11
