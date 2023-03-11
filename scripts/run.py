@@ -134,7 +134,13 @@ def main(config: ConfigBase):
 
     # --- Training and evaluation loop
     for _ in tqdm.tqdm(range(config.num_epochs), desc="Training epochs"):
-        epoch_loss, epoch_accuracy = train(model, train_loader, optim, DEVICE)
+        epoch_loss, epoch_accuracy = train(
+            model=model,
+            train_loader=train_loader,
+            optim=optim,
+            device=DEVICE,
+            logger=logger,
+        )
         logger.log_scalar("train.epoch_loss", epoch_loss)
         logger.log_scalar("train.epoch_accuracy", epoch_accuracy)
 
