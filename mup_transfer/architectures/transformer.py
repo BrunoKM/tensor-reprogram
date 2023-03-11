@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from torch import Tensor
+from typing import Optional
 
 
 from mup_transfer.config_schemas import TransformerArchitectureConfig
@@ -124,7 +125,6 @@ class TransformerModel(nn.Module):
             bias=bias,
             encoder_var=encoder_var,
             nlayers=nlayers,
-            standparam=standparam,
         )
         self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
         self.encoder = nn.Embedding(ntoken, ninp)
@@ -209,8 +209,8 @@ class TransformerEncoderLayer(Module):
         dim_feedforward=2048,
         dropout=0.1,
         activation="relu",
-        encoder_var=1,
-        attn_mult=1,
+        encoder_var=1.,
+        attn_mult=1.,
         bias=True,
         nlayers=1,
     ):
