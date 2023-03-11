@@ -21,7 +21,7 @@ def train(
     for x, y in tqdm.tqdm(train_loader, desc="Training steps"):
         x, y = x.to(device), y.to(device)
         out = model(x)
-        loss = F.cross_entropy(out, y)
+        loss = F.cross_entropy(out.view(-1, out.size(-1)), y.view(-1))
         optim.zero_grad()
         loss.backward()
         optim.step()
