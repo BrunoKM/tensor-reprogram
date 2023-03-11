@@ -65,7 +65,7 @@ class PositionalEncoding(nn.Module):
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer("pe", pe)
+        self.register_buffer("pe", pe)  # [max_len, 1, d_model]
 
     def forward(self, x):
         r"""Inputs of forward function
@@ -153,7 +153,14 @@ class TransformerModel(nn.Module):
     #             self.decoder.bias.data.zero_()
     #         self.decoder.weight.data.zero_()
 
-    def forward(self, src, has_mask=True):
+    def forward(
+            self,
+            src: Tensor,  # [batch_size, seq_len]
+            has_mask=True,
+        ):
+        """
+        Assumes [batch_size, seq_len] format, but internally transposes to [seq_len, batch_size]
+        """
         src = src.transpose(0, 1)
         if has_mask:
             device = src.device
