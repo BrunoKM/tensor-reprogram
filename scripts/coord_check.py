@@ -20,7 +20,7 @@ from mup_transfer.datasets.cifar10 import cifar10_constructor
 from mup_transfer.mup.inf_types import get_inf_types, infer_inf_type_sequential_model
 from mup_transfer.mup.utils import get_param_name
 from mup_transfer.mup.init import mup_initialise
-from mup_transfer.mup.optim_params import get_mup_sgd_param_groups
+from mup_transfer.mup.optim_params import get_mup_sgd_param_groups, get_adam_param_groups
 
 
 #: dict of provided functions for use in coord check
@@ -513,7 +513,7 @@ def plot_coord_data(df, y='l1', save_to=None, suptitle=None, x='width', hue='mod
 def main():
     # construct a dictionary of lazy μP models with differing widths
     # and the corresponding param_groups
-    def lazy_model(width, mup=True):
+    def lazy_model(width, mup=True, optim='sgd'):
         def lazy_model_fn():
             model = mlp_constructor(
                 input_size=3072,
@@ -521,6 +521,7 @@ def main():
                 output_size=10,
                 activation_constructor=nn.Tanh,
                 bias=False,
+                paper_init=True,
              )
             if mup:
                 # Initialise the model with mup
@@ -540,36 +541,47 @@ def main():
                     param_inf_types=param_inf_types,
                     init_scale=1.0,
                 )
-                param_groups = get_mup_sgd_param_groups(
-                    named_params=named_params,
-                    init_lr_scale=0.1,
-                    param_inf_types=param_inf_types,
-                )
+                if optim == 'sgd':
+                    param_groups = get_mup_sgd_param_groups(
+                        named_params=named_params,
+                        init_lr_scale=0.1,
+                        param_inf_types=param_inf_types,
+                    )
+                elif optim == 'adam':
+                     param_groups = get_adam_param_groups(
+                        named_params=named_params,
+                        init_lr_scale=0.1,
+                        param_inf_types=param_inf_types,
+                    )
+                else:
+                    raise ValueError('Only sgd and adam are supported.')
             else:
                 param_groups = model.parameters()
             return model, param_groups
         return lazy_model_fn
 
     widths = [128, 256, 512, 1024, 2048, 4096, 8192]
-    mup_or_sp = [False, True]    
-    for mup in mup_or_sp:
-        models = {width: lazy_model(width, mup) for width in widths}
-        # make a dataloader with small batch size/seq len just for testing
-        train_dataset, eval_datasets = cifar10_constructor(
-            Path(__file__).parent.parent / "data",  # Default data directory at the root of repository
-        )
-        dataloader, _ = get_data_loaders(
-            train_dataset,
-            eval_datasets,
-            train_batch_size=4,
-            eval_batch_size=512,
-        )
-        # record data from the model activations over a few steps of training
-        # this returns a pandas dataframe
-        df = get_coord_data(models, dataloader, nseeds=5)
-        # This saves the coord check plots to filename.
-        param_case = 'mup' if mup else 'sp'
-        plot_coord_data(df, save_to=f'coord_check_{param_case}.png')
+    optims = ['sgd', 'adam']
+    mup_or_sp = [False, True]
+    for optim in optims:
+        for mup in mup_or_sp:
+            models = {width: lazy_model(width, mup, optim) for width in widths}
+            # make a dataloader with small batch size/seq len just for testing
+            train_dataset, eval_datasets = cifar10_constructor(
+                Path(__file__).parent.parent / "data",  # Default data directory at the root of repository
+            )
+            dataloader, _ = get_data_loaders(
+                train_dataset,
+                eval_datasets,
+                train_batch_size=4,
+                eval_batch_size=512,
+            )
+            # record data from the model activations over a few steps of training
+            # this returns a pandas dataframe
+            df = get_coord_data(models, dataloader, optimizer=optim, nseeds=5)
+            # This saves the coord check plots to filename.
+            param_case = 'mup' if mup else 'sp'
+            plot_coord_data(df, save_to=f'coord_check_{optim}_{param_case}.png')
 
 
 if __name__ == "__main__":
