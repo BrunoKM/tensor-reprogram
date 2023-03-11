@@ -4,7 +4,7 @@ architecture_type: MLP
 dataset_type: CIFAR10
 optimization:
   optimizer_type: SGD
-  optimization_kwargs:
+  optimizer_kwargs:
     momentum: 0.9
 data_loader:
   train_batch_size: 64
