@@ -37,8 +37,8 @@ def convert_fdict(d):
         converted to functions using `FDICT`.
     '''
     return dict([
-        ((k, FDICT[v]) if isinstance(v, str) else (k, v))
-        for k, v in d.items()])
+        ((k, FDICT[v]) if isinstance(v, str) else (k, v)) for k, v in d.items()
+    ])
 
 
 def _record_coords(records, width, modulename, t,
@@ -326,9 +326,7 @@ def _get_coord_data(models, dataloader, optcls, nsteps=3,
     return pd.DataFrame(df)
 
 
-def get_coord_data(models, dataloader, optimizer='sgd', lr=None, mup=True,
-                   filter_trainable_by_name=None,
-                   **kwargs):
+def get_coord_data(models, dataloader, optimizer='sgd', lr=None, **kwargs):
     '''Get coord data for coord check.
     Train the models in `models` with data from `dataloader` and optimizer
     specified by `optimizer` and `lr` for `nsteps` steps, and record coordinate
@@ -579,4 +577,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
