@@ -165,6 +165,9 @@ def main(config: ConfigBase):
             eval_loss, eval_accuracy = eval(model, eval_loader, DEVICE)
             logger.log_scalar(f"{eval_dataset_name}.loss", eval_loss)
             logger.log_scalar(f"{eval_dataset_name}.accuracy", eval_accuracy)
+        eval_loss, eval_accuracy = eval(model, train_loader, DEVICE)
+        logger.log_scalar(f"train.loss", eval_loss)
+        logger.log_scalar(f"train.accuracy", eval_accuracy)
 
     eval_and_log()
     for _ in tqdm.tqdm(range(config.num_epochs), desc="Training epochs"):
