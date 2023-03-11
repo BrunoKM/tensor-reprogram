@@ -107,7 +107,7 @@ def main(config: ConfigBase):
                     next(module for module in model.modules() if isinstance(module, nn.Embedding)).weight, # type: ignore
                 ),
             ],
-            output_weights_names=[get_param_name(model, list(model.modules())[-1].weight)],  # type: ignore
+            output_weights_names=[get_param_name(model, model.decoder.weight)],  # type: ignore
         )
     else:
         raise ValueError(f"Unknown architecture type: {config.architecture_type}")

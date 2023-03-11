@@ -17,7 +17,7 @@ class ParamGroup(TypedDict):
 
 
 class SGDParamGroup(ParamGroup):
-    weight_decay: float
+    pass
 
 
 class AdamParamGroup(SGDParamGroup):
@@ -62,7 +62,7 @@ def get_mup_sgd_param_groups(
         lr = init_lr * lr_multiplier
         # Split the parameters in group by inf. type
         mup_param_groups.append(
-            SGDParamGroup(params=[param], lr=lr, weight_decay=0.0)
+            SGDParamGroup(params=[param], lr=lr)
         )
     return mup_param_groups
 
@@ -100,6 +100,6 @@ def get_adam_param_groups(
         lr = init_lr * lr_multiplier
         # Split the parameters in group by inf. type
         mup_param_groups.append(
-            SGDParamGroup(params=[param], lr=lr, weight_decay=0.0)
+            SGDParamGroup(params=[param], lr=lr)
         )
     return mup_param_groups
