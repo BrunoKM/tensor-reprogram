@@ -122,10 +122,11 @@ def main(cfg: ConfigBase):
 
     # --- Save the final model
     model_to_save = model.module if isinstance(model, torch.nn.DataParallel) else model
-    file_name = "test_run"  # TODO: Decide on naming scheme.
     torch.save(
         model_to_save.state_dict(),
-        Path(__file__).parent.parent / f"trained_models/{file_name}",  # Default directory at the root of repository for trained models
+        # Save the the working directory, which should be configured by Hydra to
+        # be the output directory.
+        Path(".") / f"model.torch",
     )
 
 
