@@ -16,7 +16,7 @@ def wikitext_constructor(
     test_batch_size: int,
     bptt: int,
 ) -> tuple[LMDataLoader, dict[str, LMDataLoader]]:
-    train_iter = WikiText2(str(root), split="train")
+    train_iter = WikiText2(root=str(root), split="train")
     tokenizer = get_tokenizer(None)
     vocab = build_vocab_from_iterator(map(tokenizer, train_iter), specials=["<unk>", "<eos>"])
     vocab.set_default_index(vocab["<unk>"])
@@ -29,7 +29,7 @@ def wikitext_constructor(
         ]
         return torch.cat(tuple(filter(lambda t: t.numel() > 0, data)))
 
-    train_iter, val_iter, test_iter = WikiText2()
+    train_iter, val_iter, test_iter = WikiText2(root=str(root))
     train_data = data_process(train_iter)
     val_data = data_process(val_iter)
     test_data = data_process(test_iter)

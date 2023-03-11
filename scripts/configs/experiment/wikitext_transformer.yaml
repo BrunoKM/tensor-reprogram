@@ -6,3 +6,4 @@ optimization:
   optimizer_type: ADAM
 data_loader:
   train_batch_size: 20
+  clip_grad: 0.25

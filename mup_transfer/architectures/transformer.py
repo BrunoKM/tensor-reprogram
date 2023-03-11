@@ -131,11 +131,11 @@ class TransformerModel(nn.Module):
         self.decoder = nn.Linear(ninp, ntoken, bias=bias)
         # if standparam:
         #     self.decoder = nn.Linear(ninp, ntoken, bias=bias)
-        #     if tied:
-        #         with torch.no_grad():
-        #             self.encoder.weight = self.decoder.weight
+        if tied:
+            # TODO
+            with torch.no_grad():
+                self.encoder.weight = self.decoder.weight
         # else:
-        #     # TODO
         #     if tied:
         #         self.decoder = MuSharedReadout(self.encoder.weight, bias=bias, output_mult=args.output_mult)
         #     else:

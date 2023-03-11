@@ -32,6 +32,7 @@ class OptimizerConfig:
     optimizer_type: OptimizerType = OptimizerType.SGD
     lr: float = 1e-3
     optimizer_kwargs: dict[str, Any] = field(default_factory=dict)
+    clip_grad: float = float("inf")
 
 
 @dataclass

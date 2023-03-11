@@ -172,6 +172,7 @@ def main(config: ConfigBase):
             model=model,
             train_loader=train_loader,
             optim=optim,
+            clip_grad=config.optimization.clip_grad,
             device=DEVICE,
             logger=logger,
         )
