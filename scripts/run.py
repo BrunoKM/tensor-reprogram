@@ -11,10 +11,12 @@ from functools import reduce
 from pathlib import Path
 from mup_transfer.architectures.mlp import mlp_constructor
 from hydra.core.config_store import ConfigStore
+from mup_transfer.architectures.transformer import transformer_constructor
+from mup_transfer.configs import TransformerArchitectureConfig, register_configs
 
 from mup_transfer.data_utils import get_data_loaders
 from mup_transfer.datasets.cifar10 import cifar10_constructor
-from mup_transfer.config import ConfigBase
+from mup_transfer.config_schemas import ArchitectureType, ConfigBase
 from mup_transfer.datasets.util import get_input_shape, get_output_size
 from mup_transfer.loggers.wandb_logger import WandbLogger
 from mup_transfer.mup.inf_types import get_inf_types, infer_inf_type_sequential_model
@@ -30,6 +32,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # Register the defaults from the structured dataclass config schema:
 cs = ConfigStore.instance()
 cs.store(name="config_base", node=ConfigBase)
+register_configs()
 
 
 @hydra.main(config_path="configs/", config_name="defaults", version_base=None)
@@ -66,27 +69,44 @@ def main(cfg: ConfigBase):
 
     # --- Construct the model
 
-    # TODO: Make general and dependent on the config
-    model = mlp_constructor(
-        input_size=reduce(lambda x, y: x * y, get_input_shape(train_dataset)),
-        hidden_sizes=[128, 128],
-        output_size=get_output_size(train_dataset),
-        bias=cfg.architecture.bias,
-    )
+    if cfg.architecture.name == ArchitectureType.MLP:
+        model = mlp_constructor(
+            input_size=reduce(lambda x, y: x * y, get_input_shape(train_dataset)),
+            hidden_sizes=[128, 128],
+            output_size=get_output_size(train_dataset),
+        )
+        # Get inf types for model
+        param_inf_types = get_inf_types(
+            model=model,
+            input_weights_names=[
+                get_param_name(
+                    model,
+                    # Get the weight of the first nn.Linear layer in the model.
+                    next(module for module in model if isinstance(module, nn.Linear)).weight, # type: ignore
+                ),
+            ],
+            output_weights_names=[get_param_name(model, model[-1].weight)],  # type: ignore
+        )
+    elif cfg.architecture.name == ArchitectureType.TRANSFORMER:
+        cfg.architecture: TransformerArchitectureConfig
+        model = transformer_constructor( cfg.architecture)
+        param_inf_types = get_inf_types(
+            model=model,
+            input_weights_names=[
+                get_param_name(
+                    model,
+                    # Get the weight of the first nn.Linear layer in the model.
+                    next(module for module in model.modules() if isinstance(module, nn.Embedding)).weight, # type: ignore
+                ),
+            ],
+            output_weights_names=[get_param_name(model, list(model.modules())[-1].weight)],  # type: ignore
+        )
+    else:
+        raise ValueError(f"Unknown architecture type: {cfg.architecture.name}")
+
     model.to(DEVICE)
 
     # Initialise the model with mup
-    param_inf_types = get_inf_types(
-        model=model,
-        input_weights_names=[
-            get_param_name(
-                model,
-                # Get the weight of the first nn.Linear layer in the model.
-                next(module for module in model if isinstance(module, nn.Linear)).weight, # type: ignore
-            ),
-        ],
-        output_weights_names=[get_param_name(model, model[-1].weight)],  # type: ignore
-    )
     mup_initialise(
         named_params=(named_params := list(model.named_parameters())),
         param_inf_types=param_inf_types,

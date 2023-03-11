@@ -1,5 +1,5 @@
 import torch
-from mup_transfer.config import OptimizerConfig, OptimizerType
+from mup_transfer.config_schemas import OptimizerConfig, OptimizerType
 
 
 def optimizer_constructor(optimizer_config: OptimizerConfig):
