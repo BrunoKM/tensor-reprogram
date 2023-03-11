@@ -1,0 +1,6 @@
+# @package _global_
+num_epochs: 10
+architecture_type: MLP
+dataset_type: CIFAR10
+optimization:
+  optimizer_type: SGD

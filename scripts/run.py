@@ -116,7 +116,7 @@ def main(config: ConfigBase):
     )
     param_groups = get_mup_sgd_param_groups(
         named_params=named_params,
-        init_lr_scale=config.optimisation.lr,
+        init_lr_scale=config.optimization.lr,
         param_inf_types=param_inf_types,
     )
 
@@ -125,7 +125,7 @@ def main(config: ConfigBase):
     # TODO make optim type configurable via config.
     optim = torch.optim.SGD(
         params=param_groups,  # type: ignore
-        lr=config.optimisation.lr,
+        lr=config.optimization.lr,
     )
     # TODO: Maybe add lr schedule.
 
