@@ -90,8 +90,17 @@ def main(cfg: ConfigBase):
         )
     elif cfg.architecture.name == ArchitectureType.TRANSFORMER:
         cfg.architecture: TransformerArchitectureConfig
-        model = transformer_constructor(
-            cfg.architecture
+        model = transformer_constructor( cfg.architecture)
+        param_inf_types = get_inf_types(
+            model=model,
+            input_weights_names=[
+                get_param_name(
+                    model,
+                    # Get the weight of the first nn.Linear layer in the model.
+                    next(module for module in model.modules() if isinstance(module, nn.Embedding)).weight, # type: ignore
+                ),
+            ],
+            output_weights_names=[get_param_name(model, list(model.modules())[-1].weight)],  # type: ignore
         )
     else:
         raise ValueError(f"Unknown architecture type: {cfg.architecture.name}")
