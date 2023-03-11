@@ -1,0 +1,7 @@
+defaults:
+  - config_base
+  - _self_
+
+hydra:
+  job:
+    chdir: true
