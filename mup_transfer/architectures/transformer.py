@@ -3,6 +3,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from torch import Tensor
+
+
 from mup_transfer.config_schemas import TransformerArchitectureConfig
 
 
@@ -14,16 +17,7 @@ The only things we modified from the original pytorch Transformer example are
 4) zero initialization of query weights
 """
 
-# def init_method_normal(sigma):
-#     """Init method based on N(0, sigma)."""
-#     def init_(tensor):
-#         return nn.init.normal_(tensor, mean=0.0, std=sigma)
-#     return init_
 
-
-# model = _model.TransformerModel(args, ntokens, ninp=w, nhead=args.nhead, nhid=w*args.ffn_ratio, nlayers=args.nlayers, dropout=args.dropout,
-#                                         tied=args.tied, bias=args.bias, encoder_var=args.init_var,
-#                                         decoder_var=args.init_var, standparam=standparam).to(args.device)
 def transformer_constructor(
     architecture_config: TransformerArchitectureConfig,
 ):
@@ -480,29 +474,29 @@ class MultiheadAttention(Module):
 
 
 def multi_head_attention_forward(
-    query,  # type: Tensor
-    key,  # type: Tensor
-    value,  # type: Tensor
-    embed_dim_to_check,  # type: int
-    num_heads,  # type: int
-    in_proj_weight,  # type: Tensor
-    in_proj_bias,  # type: Tensor
-    bias_k,  # type: Optional[Tensor]
-    bias_v,  # type: Optional[Tensor]
-    add_zero_attn,  # type: bool
-    dropout_p,  # type: float
-    out_proj_weight,  # type: Tensor
-    out_proj_bias,  # type: Tensor
-    training=True,  # type: bool
-    key_padding_mask=None,  # type: Optional[Tensor]
-    need_weights=True,  # type: bool
-    attn_mask=None,  # type: Optional[Tensor]
-    use_separate_proj_weight=False,  # type: bool
-    q_proj_weight=None,  # type: Optional[Tensor]
-    k_proj_weight=None,  # type: Optional[Tensor]
-    v_proj_weight=None,  # type: Optional[Tensor]
-    static_k=None,  # type: Optional[Tensor]
-    static_v=None,  # type: Optional[Tensor]
+    query: Tensor,  
+    key: Tensor,  
+    value: Tensor,  
+    embed_dim_to_check: int,  
+    num_heads: int,  
+    in_proj_weight: Tensor,  
+    in_proj_bias: Tensor,  
+    bias_k: Optional[Tensor],  
+    bias_v: Optional[Tensor],  
+    add_zero_attn: bool,  
+    dropout_p: float,  
+    out_proj_weight: Tensor,  
+    out_proj_bias: Tensor,  
+    training: bool=True,  
+    key_padding_mask: Optional[Tensor]=None,  
+    need_weights: bool=True,  
+    attn_mask: Optional[Tensor]=None,  
+    use_separate_proj_weight: bool=False,  
+    q_proj_weight: Optional[Tensor]=None,  
+    k_proj_weight: Optional[Tensor]=None,  
+    v_proj_weight: Optional[Tensor]=None,  
+    static_k: Optional[Tensor]=None,  
+    static_v: Optional[Tensor]=None,  
     attn_mult=1,
 ):
     # type: (...) -> Tuple[Tensor, Optional[Tensor]]
