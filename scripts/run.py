@@ -153,6 +153,8 @@ def main(config: ConfigBase):
             lr=config.optimization.lr,
             **config.optimization.optimizer_kwargs,
         )
+    else:
+        raise ValueError(f"Unknown optimizer type: {config.optimization.optimizer_type}")
 
     # TODO: Maybe add lr schedule.
 
