@@ -16,7 +16,7 @@ from mup_transfer.configs import register_configs
 
 from mup_transfer.data_utils import get_data_loaders
 from mup_transfer.datasets.cifar10 import cifar10_constructor
-from mup_transfer.config_schemas import ArchitectureType, ConfigBase
+from mup_transfer.config_schemas import ArchitectureType, ConfigBase, DatasetType
 from mup_transfer.datasets.util import get_input_shape, get_output_size
 from mup_transfer.loggers.wandb_logger import WandbLogger
 from mup_transfer.mup.inf_types import get_inf_types, infer_inf_type_sequential_model
@@ -54,10 +54,13 @@ def main(config: ConfigBase):
     )
 
     # --- Construct and get the dataset
-    # TODO: Make general and dependent on the config
-    train_dataset, eval_datasets = cifar10_constructor(
-        Path(__file__).parent.parent / "data",  # Default data directory at the root of repository
-    )
+    if config.dataset_type == DatasetType.CIFAR10:
+        train_dataset, eval_datasets = cifar10_constructor(
+            Path(__file__).parent.parent / "data",  # Default data directory at the root of repository
+        )
+    else:
+        raise NotImplementedError(f"Dataset type {config.dataset_type} not implemented.")
+    
     train_loader, eval_loaders = get_data_loaders(
         train_dataset,
         eval_datasets,
