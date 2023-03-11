@@ -4,3 +4,5 @@ architecture_type: TRANSFORMER
 dataset_type: WIKITEXT
 optimization:
   optimizer_type: ADAM
+data_loader:
+  train_batch_size: 20
