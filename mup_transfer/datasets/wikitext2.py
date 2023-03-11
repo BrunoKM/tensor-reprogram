@@ -12,10 +12,11 @@ from fastai.text.all import LMDataLoader
 
 def wikitext_constructor(
     root: PathLike,
-    batch_size: int,
+    train_batch_size: int,
+    test_batch_size: int,
     bptt: int,
-) -> tuple[Dataset, dict[str, Dataset]]:
-    train_iter = WikiText2(root, split='train')
+) -> tuple[LMDataLoader, dict[str, LMDataLoader]]:
+    train_iter = WikiText2(str(root), split='train')
     tokenizer = get_tokenizer(None)
     vocab = build_vocab_from_iterator(map(tokenizer, train_iter), specials=['<unk>', '<eos>'])
     vocab.set_default_index(vocab['<unk>'])
@@ -31,9 +32,9 @@ def wikitext_constructor(
     val_data = data_process(val_iter)
     test_data = data_process(test_iter)
 
-    train_dataloader = LMDataLoader([train_data], bs=batch_size, seq_len=bptt)
-    valid_dataloader = LMDataLoader([val_data], bs=batch_size, seq_len=bptt)
-    test_dataloader = LMDataLoader([test_data], bs=batch_size, seq_len=bptt)
+    train_dataloader = LMDataLoader([train_data], bs=train_batch_size, seq_len=bptt)
+    valid_dataloader = LMDataLoader([val_data], bs=test_batch_size, seq_len=bptt)
+    test_dataloader = LMDataLoader([test_data], bs=test_batch_size, seq_len=bptt)
     return train_dataloader, {'valid': valid_dataloader, "test": test_dataloader}
 
 
