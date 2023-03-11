@@ -29,3 +29,4 @@ matplotlib==3.7.1
 pandas==1.5.3
 seaborn==0.12.2
 torchtext==0.14.1
+fastai==2.7.11
