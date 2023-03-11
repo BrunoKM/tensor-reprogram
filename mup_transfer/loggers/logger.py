@@ -25,3 +25,10 @@ class LoggerBase(abc.ABC):
     def log_scalar(self, name: str, value: float, step: Optional[int] = None):
         pass
 
+
+class NullLogger(LoggerBase):
+    """
+    A logger that does nothing. Useful for default arguments in functions.
+    """
+    def log_scalar(self, name: str, value: float, step: Optional[int] = None):
+        pass
