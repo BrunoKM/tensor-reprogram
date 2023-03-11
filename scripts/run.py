@@ -12,7 +12,7 @@ from pathlib import Path
 from mup_transfer.architectures.mlp import mlp_constructor
 from hydra.core.config_store import ConfigStore
 from mup_transfer.architectures.transformer import transformer_constructor
-from mup_transfer.configs import TransformerArchitectureConfig, register_configs
+from mup_transfer.configs import register_configs
 
 from mup_transfer.data_utils import get_data_loaders
 from mup_transfer.datasets.cifar10 import cifar10_constructor
@@ -36,7 +36,7 @@ register_configs()
 
 
 @hydra.main(config_path="configs/", config_name="defaults", version_base=None)
-def main(cfg: ConfigBase):
+def main(config: ConfigBase):
     """
     cfg is typed as ConfigBase for duck-typing, but during runtime it's actually an OmegaConf object.
     """
@@ -50,7 +50,7 @@ def main(cfg: ConfigBase):
         # This is needed to make WandB and Hydra play nicely:
         settings=wandb.Settings(start_method="thread"),
         # Log the config to WandB
-        config=omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True),
+        config=omegaconf.OmegaConf.to_container(config, resolve=True, throw_on_missing=True),
     )
 
     # --- Construct and get the dataset
@@ -61,15 +61,15 @@ def main(cfg: ConfigBase):
     train_loader, eval_loaders = get_data_loaders(
         train_dataset,
         eval_datasets,
-        train_batch_size=cfg.data_loader.train_batch_size,
-        eval_batch_size=cfg.data_loader.eval_batch_size,
-        num_workers=cfg.data_loader.num_workers,
-        pin_memory=cfg.data_loader.pin_memory,
+        train_batch_size=config.data_loader.train_batch_size,
+        eval_batch_size=config.data_loader.eval_batch_size,
+        num_workers=config.data_loader.num_workers,
+        pin_memory=config.data_loader.pin_memory,
     )
 
     # --- Construct the model
 
-    if cfg.architecture.name == ArchitectureType.MLP:
+    if config.architecture_type == ArchitectureType.MLP:
         model = mlp_constructor(
             input_size=reduce(lambda x, y: x * y, get_input_shape(train_dataset)),
             hidden_sizes=[128, 128],
@@ -87,9 +87,8 @@ def main(cfg: ConfigBase):
             ],
             output_weights_names=[get_param_name(model, model[-1].weight)],  # type: ignore
         )
-    elif cfg.architecture.name == ArchitectureType.TRANSFORMER:
-        cfg.architecture: TransformerArchitectureConfig
-        model = transformer_constructor( cfg.architecture)
+    elif config.architecture_type == ArchitectureType.TRANSFORMER:
+        model = transformer_constructor(config.transformer_config)
         param_inf_types = get_inf_types(
             model=model,
             input_weights_names=[
@@ -102,7 +101,7 @@ def main(cfg: ConfigBase):
             output_weights_names=[get_param_name(model, list(model.modules())[-1].weight)],  # type: ignore
         )
     else:
-        raise ValueError(f"Unknown architecture type: {cfg.architecture.name}")
+        raise ValueError(f"Unknown architecture type: {config.architecture_type}")
 
     model.to(DEVICE)
 
@@ -110,11 +109,11 @@ def main(cfg: ConfigBase):
     mup_initialise(
         named_params=(named_params := list(model.named_parameters())),
         param_inf_types=param_inf_types,
-        init_scale=cfg.initialisation.init_scale,
+        init_scale=config.initialisation.init_scale,
     )
     param_groups = get_mup_sgd_param_groups(
         named_params=named_params,
-        init_lr_scale=cfg.optimisation.lr,
+        init_lr_scale=config.optimisation.lr,
         param_inf_types=param_inf_types,
     )
 
@@ -123,7 +122,7 @@ def main(cfg: ConfigBase):
     # TODO make optim type configurable via config.
     optim = torch.optim.SGD(
         params=param_groups,  # type: ignore
-        lr=cfg.optimisation.lr,
+        lr=config.optimisation.lr,
     )
     # TODO: Maybe add lr schedule.
 
@@ -131,7 +130,7 @@ def main(cfg: ConfigBase):
     # model_forward = torch.compile(model)
 
     # --- Training and evaluation loop
-    for _ in tqdm.tqdm(range(cfg.num_epochs), desc="Training epochs"):
+    for _ in tqdm.tqdm(range(config.num_epochs), desc="Training epochs"):
         epoch_loss, epoch_accuracy = train(model, train_loader, optim, DEVICE)
         logger.log_scalar("train.epoch_loss", epoch_loss)
         logger.log_scalar("train.epoch_accuracy", epoch_accuracy)
