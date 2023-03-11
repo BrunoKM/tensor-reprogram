@@ -23,9 +23,8 @@ The only things we modified from the original pytorch Transformer example are
 #                                         decoder_var=args.init_var, standparam=standparam).to(args.device)
 def transformer_constructor(
     args
-)
-    # TODO: ???
-    standparam = False
+    ):
+    print(args)
     return TransformerModel(args, args.ntokens, ninp=args.d_model, nhead=args.nhead, nhid=args.d_model*args.ffn_ratio, nlayers=args.nlayers, dropout=args.dropout,
                 tied=args.tied, bias=args.bias, encoder_var=args.init_var, 
                 decoder_var=args.init_var, standparam=args.standparam).to(args.device)
@@ -389,8 +388,6 @@ class MultiheadAttention(Module):
                 key_padding_mask=key_padding_mask, need_weights=need_weights,
                 attn_mask=attn_mask, attn_mult=self.attn_mult,
                 standparam=self.standparam)
-
-from _overrides import has_torch_function, handle_torch_function
 
 def multi_head_attention_forward(query,                           # type: Tensor
                                  key,                             # type: Tensor

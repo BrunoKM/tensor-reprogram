@@ -35,7 +35,7 @@ class ConfigBase:
 
 
 @dataclass
-class ArchitectureTransformerConfig:
+class ArchitectureTransformerConfig(ArchitectureConfig):
     bias: bool = False
     d_model: int = 256
     ffn_ratio: int = 1
@@ -44,7 +44,7 @@ class ArchitectureTransformerConfig:
     dropout: float = 0.2
     tied: bool = False
     init_var: float = 1
-    ntokens: int = xx
+    ntokens: int = 33278
     att_mult: int = 1
     output_mul: int = 1
     standparam: bool = False    # TODO
