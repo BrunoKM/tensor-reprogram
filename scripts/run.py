@@ -1,6 +1,8 @@
 import hydra
 import omegaconf
 import torch
+import torch.nn as nn
+import tqdm
 import wandb
 
 from functools import reduce
@@ -71,7 +73,13 @@ def main(cfg: ConfigBase):
     # Initialise the model with mup
     param_inf_types = get_inf_types(
         model=model,
-        input_weights_names=[get_param_name(model, model[0].weight)],  # type: ignore
+        input_weights_names=[
+            get_param_name(
+                model,
+                # Get the weight of the first nn.Linear layer in the model.
+                next(module for module in model if isinstance(module, nn.Linear)).weight, # type: ignore
+            ),
+        ],
         output_weights_names=[get_param_name(model, model[-1].weight)],  # type: ignore
     )
     mup_initialise(
@@ -98,7 +106,7 @@ def main(cfg: ConfigBase):
     # model_forward = torch.compile(model)
 
     # --- Training and evaluation loop
-    for _ in range(cfg.num_epochs):
+    for _ in tqdm.tqdm(range(cfg.num_epochs), desc="Training epochs"):
         train_loss, train_accuracy = train(model, train_loader, optim, DEVICE)
         logger.log_scalar("train.loss", train_loss)
         logger.log_scalar("train.accuracy", train_accuracy)
@@ -107,7 +115,7 @@ def main(cfg: ConfigBase):
         for eval_dataset_name, eval_loader in eval_loaders.items():
             eval_loss, eval_accuracy = eval(model, eval_loader, DEVICE)
             logger.log_scalar(f"{eval_dataset_name}.loss", eval_loss)
-            logger.log_scalar("train.accuracy", eval_accuracy)
+            logger.log_scalar(f"{eval_dataset_name}.accuracy", eval_accuracy)
 
     # --- Save the final model
     model_to_save = model.module if isinstance(model, torch.nn.DataParallel) else model
