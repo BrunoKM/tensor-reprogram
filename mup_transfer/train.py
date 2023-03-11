@@ -1,4 +1,5 @@
 import torch
+import tqdm
 import torch.nn.functional as F
 
 
@@ -8,10 +9,13 @@ def train(
     optim: torch.optim.Optimizer,
     device: torch.device = torch.device('cpu'),
 ) -> tuple[float, float]:
+    """
+    Train the model for one epoch. Returns the training loss for that epoch and accuracy.
+    """
     model.train()
     train_loss = 0.
     n_correct = 0
-    for X, y in train_loader:
+    for X, y in tqdm.tqdm(train_loader, desc="Training steps"):
         X, y = X.to(device), y.to(device)
         out = model(X)
         loss = F.cross_entropy(out, y)

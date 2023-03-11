@@ -1,8 +1,12 @@
 # Tensor Reprogram: mu-Parameterisation and mu-Transfer reproduction
 ## Setup
-Install all the required modules:
+We assume Python 3.10.x. Install all the required modules:
 ```
 pip install -r requirements.txt
+```
+Install PyTorch 1.13.1 with torchvision 0.14.1:
+```
+pip install torch==1.13.1 torchvision==0.14.1 --extra-index-url https://download.pytorch.org/whl/cu117
 ```
 Install this repository in editable mode
 ```
