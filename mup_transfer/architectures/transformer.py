@@ -154,6 +154,7 @@ class TransformerModel(nn.Module):
     #         self.decoder.weight.data.zero_()
 
     def forward(self, src, has_mask=True):
+        src = src.transpose(0, 1)
         if has_mask:
             device = src.device
             if self.src_mask is None or self.src_mask.size(0) != len(src):
@@ -166,6 +167,7 @@ class TransformerModel(nn.Module):
         src = self.pos_encoder(src)
         output = self.transformer_encoder(src, self.src_mask)
         output = self.decoder(output)
+        output = output.transpose(0, 1)
         return output
         # return F.log_softmax(output, dim=-1)
 

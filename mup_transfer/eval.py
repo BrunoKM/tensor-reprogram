@@ -15,7 +15,7 @@ def eval(
         for X, y in eval_loader:
             X, y = X.to(device), y.to(device)
             out = model(X)
-            loss = F.cross_entropy(out.view(-1, out.size(-1)), y.view(-1), reduction='sum')
+            loss = F.cross_entropy(out.reshape(-1, out.size(-1)), y.view(-1), reduction='sum')
             eval_loss += loss.item()
             n_correct += (out.argmax(-1) == y).sum().item()
         N = len(eval_loader.dataset)
