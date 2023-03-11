@@ -1,11 +1,13 @@
-from dataclasses import dataclass
-
-
-from mup_transfer.config_schemas import ArchitectureType, ConfigBase, DataLoaderConfig, DatasetConfig, DatasetType, InitialisationConfig, OptimizerConfig, OptimizerType
-
 from hydra.core.config_store import ConfigStore
 
-
+from mup_transfer.config_schemas import (
+    ArchitectureType,
+    ConfigBase,
+    DatasetType,
+    InitialisationConfig,
+    OptimizerConfig,
+    OptimizerType,
+)
 
 
 # Specific experiment configs
