@@ -1,0 +1,4 @@
+# @package _global_
+defaults:
+ - dataset: cifar10
+ - architecture: mlp

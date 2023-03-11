@@ -3,6 +3,11 @@ import enum
 from typing import Any
 
 
+class ArchitectureType(str, enum.Enum):
+    MLP = "mlp"
+    TRANSFORMER = "transformer"
+
+
 @dataclass
 class ArchitectureConfig:
     bias: bool = True
@@ -10,7 +15,7 @@ class ArchitectureConfig:
 
 @dataclass
 class DatasetConfig:
-    pass
+    name: DatasetType = DatasetType.CIFAR10
 
 
 @dataclass
@@ -19,6 +24,11 @@ class DataLoaderConfig:
     eval_batch_size: int = 512
     num_workers: int = 4
     pin_memory: bool = False
+
+
+@dataclass
+class SequenceDataLoaderConfig(DataLoaderConfig):
+    bptt: int = 35
 
 
 class OptimizerType(str, enum.Enum):
@@ -40,10 +50,8 @@ class InitialisationConfig:
 
 @dataclass
 class ConfigBase:
-    num_epochs: int = 10
-    seed: int = 1111
 
-    architecture: ArchitectureConfig = field(default_factory=ArchitectureConfig)
+    architecture: ArchitectureConfig
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     data_loader: DataLoaderConfig = field(default_factory=DataLoaderConfig)
     optimisation: OptimizerConfig = field(default_factory=OptimizerConfig)

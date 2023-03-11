@@ -1,0 +1,12 @@
+name: transformer
+bias: false
+d_model: 256
+ffn_ratio: 1
+nlayers: 2
+nhead: 2
+dropout: 0.2
+tied: False
+init_var: 1
+ntokens: 33278
+att_mult: 1
+output_mul: 1
