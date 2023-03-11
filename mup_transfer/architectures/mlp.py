@@ -19,6 +19,7 @@ def mlp_constructor(
         layers.insert(0, nn.Flatten())
     model = nn.Sequential(*layers)
     if paper_init:
+        # Same init. for Standard Param. as the Tensor Programs V paper.
         model.apply(init_weights)
         nn.init.zeros_(model[-1].weight)
         if hasattr(model[-1], 'bias'):
