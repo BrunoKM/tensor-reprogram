@@ -3,12 +3,9 @@ Modified helper functions for performing coord check from
 https://github.com/microsoft/mup/blob/main/mup/coord_check.py
 (Copyright 2022 Microsoft Corporation) and short coord check for the MLP.
 '''
-import os
 from copy import copy
-from itertools import product
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
@@ -17,7 +14,7 @@ import torch.nn.functional as F
 from mup_transfer.architectures.mlp import mlp_constructor
 from mup_transfer.data_utils import get_data_loaders
 from mup_transfer.datasets.cifar10 import cifar10_constructor
-from mup_transfer.mup.inf_types import get_inf_types, infer_inf_type_sequential_model
+from mup_transfer.mup.inf_types import get_inf_types
 from mup_transfer.mup.utils import get_param_name
 from mup_transfer.mup.init import mup_initialise
 from mup_transfer.mup.optim_params import get_mup_sgd_param_groups, get_adam_param_groups
@@ -29,10 +26,6 @@ FDICT = {
     'l2': lambda x: (x**2).mean(dtype=torch.float32)**0.5,
     'mean': lambda x: x.mean(dtype=torch.float32),
     'std': lambda x: x.std(dtype=torch.float32),
-    'covl1': lambda x: torch.abs(cov(x)).mean(dtype=torch.float32),
-    'covl2': lambda x: (cov(x)**2).mean(dtype=torch.float32)**0.5,
-    'covoffdiagl1': lambda x: torch.abs(covoffdiag(x)).mean(dtype=torch.float32),
-    'covoffdiagl2': lambda x: (covoffdiag(x)**2).mean(dtype=torch.float32)**0.5
 }
 
 def convert_fdict(d):
