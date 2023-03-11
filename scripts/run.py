@@ -19,7 +19,7 @@ from mup_transfer.datasets.cifar10 import cifar10_constructor
 from mup_transfer.config_schemas import ArchitectureType, ConfigBase, DatasetType, OptimizerType
 from mup_transfer.datasets.util import get_input_shape, get_output_size
 from mup_transfer.loggers.wandb_logger import WandbLogger
-from mup_transfer.mup.inf_types import get_inf_types, infer_inf_type_sequential_model
+from mup_transfer.mup.inf_types import get_inf_types
 from mup_transfer.mup.utils import get_param_name
 from mup_transfer.mup.init import mup_initialise
 from mup_transfer.mup.optim_params import get_adam_param_groups, get_mup_sgd_param_groups
