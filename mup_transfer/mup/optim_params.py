@@ -65,3 +65,41 @@ def get_mup_sgd_param_groups(
             SGDParamGroup(params=[param], lr=lr, weight_decay=0.0)
         )
     return mup_param_groups
+
+
+def get_adam_param_groups(
+        named_params: Sequence[tuple[str, nn.Parameter]],
+        init_lr_scale: Union[float, dict[str, float]],
+        param_inf_types: dict[str, InfType],
+    ) -> list[SGDParamGroup]:
+    """
+
+    Args:
+        named_params: 
+        init_lr_scale: 
+        param_inf_types: A dictionary mapping the names of the parameters to their infinite width type. The 
+            initialisation scheme will be different for each type of parameter.
+    """
+    mup_param_groups: list[SGDParamGroup] = []
+    for param_name, param in named_params:
+        init_lr = init_lr_scale if isinstance(init_lr_scale, float) else init_lr_scale[param_name]
+        # Fan-in of a bias is 1
+        fan_out = param.shape[0]
+        fan_in = param.shape[1] if len(param.shape) >= 2 else 1
+        inf_type = param_inf_types[param_name]
+
+        match inf_type:
+            case InfType.INPUT_OR_BIAS:
+                lr_multiplier = 1
+            case InfType.OUTPUT_WEIGHT:
+                lr_multiplier = 1 / fan_in
+            case InfType.HIDDEN_WEIGHT:
+                lr_multiplier = 1 / fan_in
+            case _:
+                raise ValueError(f"Unrecognised infinite width type: {inf_type}")
+        lr = init_lr * lr_multiplier
+        # Split the parameters in group by inf. type
+        mup_param_groups.append(
+            SGDParamGroup(params=[param], lr=lr, weight_decay=0.0)
+        )
+    return mup_param_groups

@@ -66,6 +66,8 @@ class ConfigBase:
     num_epochs: int
     architecture_type: ArchitectureType
     dataset_type: DatasetType
+    use_mu_param: bool = True
+
     optimization: OptimizerConfig = field(default_factory=OptimizerConfig)
     initialisation: InitialisationConfig = field(default_factory=InitialisationConfig)
     transformer_config: TransformerArchitectureConfig = field(default_factory=TransformerArchitectureConfig)

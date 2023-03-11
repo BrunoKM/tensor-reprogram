@@ -25,3 +25,6 @@ tqdm==4.65.0
 torchtext==0.14.1
 torchdata==0.5.1
 fastai==2.7.11
+matplotlib==3.7.1
+pandas==1.5.3
+seaborn==0.12.2

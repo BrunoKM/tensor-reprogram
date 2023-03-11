@@ -15,14 +15,14 @@ from mup_transfer.architectures.transformer import transformer_constructor
 
 from mup_transfer.data_utils import get_data_loaders
 from mup_transfer.datasets.cifar10 import cifar10_constructor
-from mup_transfer.config_schemas import ArchitectureType, ConfigBase, DatasetType
+from mup_transfer.config_schemas import ArchitectureType, ConfigBase, DatasetType, OptimizerType
 from mup_transfer.datasets.util import get_input_shape, get_output_size
 from mup_transfer.datasets.wikitext2 import wikitext_constructor
 from mup_transfer.loggers.wandb_logger import WandbLogger
 from mup_transfer.mup.inf_types import get_inf_types, infer_inf_type_sequential_model
 from mup_transfer.mup.utils import get_param_name
 from mup_transfer.mup.init import mup_initialise
-from mup_transfer.mup.optim_params import get_mup_sgd_param_groups
+from mup_transfer.mup.optim_params import get_adam_param_groups, get_mup_sgd_param_groups
 from mup_transfer.train import train
 from mup_transfer.eval import eval
 
@@ -115,24 +115,45 @@ def main(config: ConfigBase):
     model.to(DEVICE)
 
     # Initialise the model with mup
-    mup_initialise(
-        named_params=(named_params := list(model.named_parameters())),
-        param_inf_types=param_inf_types,
-        init_scale=config.initialisation.init_scale,
-    )
-    param_groups = get_mup_sgd_param_groups(
-        named_params=named_params,
-        init_lr_scale=config.optimization.lr,
-        param_inf_types=param_inf_types,
-    )
+    named_params = list(model.named_parameters())
+    if config.use_mu_param:
+        mup_initialise(
+            named_params=named_params,
+            param_inf_types=param_inf_types,
+            init_scale=config.initialisation.init_scale,
+        )
 
 
     # --- Construct the optimizer
-    # TODO make optim type configurable via config.
-    optim = torch.optim.SGD(
-        params=param_groups,  # type: ignore
-        lr=config.optimization.lr,
-    )
+    if config.optimization.optimizer_type == OptimizerType.SGD:
+        if config.use_mu_param:
+            param_groups = get_mup_sgd_param_groups(
+                named_params=named_params,
+                init_lr_scale=config.optimization.lr,
+                param_inf_types=param_inf_types,
+            )
+        else:
+            param_groups = named_params
+        optim = torch.optim.SGD(
+            params=param_groups,  # type: ignore
+            lr=config.optimization.lr,
+            **config.optimization.optimizer_kwargs,
+        )
+    elif config.optimization.optimizer_type == OptimizerType.ADAM:
+        if config.use_mu_param:
+            param_groups = get_adam_param_groups(
+                named_params=named_params,
+                init_lr_scale=config.optimization.lr,
+                param_inf_types=param_inf_types,
+            )
+        else:
+            param_groups = named_params
+        optim = torch.optim.Adam(
+            params=param_groups,  # type: ignore
+            lr=config.optimization.lr,
+            **config.optimization.optimizer_kwargs,
+        )
+
     # TODO: Maybe add lr schedule.
 
     # --- Compile the model
