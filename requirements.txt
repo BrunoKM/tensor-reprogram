@@ -22,3 +22,6 @@ smmap==5.0.0
 urllib3==1.26.14
 wandb==0.13.10
 tqdm==4.65.0
+matplotlib==3.7.1
+pandas==1.5.3
+seaborn==0.12.2
