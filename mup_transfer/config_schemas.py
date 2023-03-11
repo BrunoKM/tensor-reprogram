@@ -50,8 +50,9 @@ class TransformerArchitectureConfig:
     tied: bool = False
     init_var: float = 1
     ntokens: int = 33278
-    att_mult: float = 1
-    output_mul: float = 1
+    att_mult: float = 1.
+    attn_mult: float = 1.
+    output_mul: float = 1.
 
 
 @dataclass

@@ -18,6 +18,7 @@ from mup_transfer.data_utils import get_data_loaders
 from mup_transfer.datasets.cifar10 import cifar10_constructor
 from mup_transfer.config_schemas import ArchitectureType, ConfigBase, DatasetType
 from mup_transfer.datasets.util import get_input_shape, get_output_size
+from mup_transfer.datasets.wikitext2 import wikitext_constructor
 from mup_transfer.loggers.wandb_logger import WandbLogger
 from mup_transfer.mup.inf_types import get_inf_types, infer_inf_type_sequential_model
 from mup_transfer.mup.utils import get_param_name
@@ -58,25 +59,32 @@ def main(config: ConfigBase):
         train_dataset, eval_datasets = cifar10_constructor(
             Path(__file__).parent.parent / "data",  # Default data directory at the root of repository
         )
+        train_loader, eval_loaders = get_data_loaders(
+            train_dataset,
+            eval_datasets,
+            train_batch_size=config.data_loader.train_batch_size,
+            eval_batch_size=config.data_loader.eval_batch_size,
+            num_workers=config.data_loader.num_workers,
+            pin_memory=config.data_loader.pin_memory,
+        )
+    elif config.dataset_type == DatasetType.WIKITEXT:
+        train_loader, eval_loaders = wikitext_constructor(
+            root=Path(__file__).parent.parent / "data",  # Default data directory at the root of repository
+            train_batch_size=config.data_loader.train_batch_size,
+            test_batch_size=config.data_loader.eval_batch_size,
+            bptt=config.data_loader.bptt,
+        )
     else:
         raise NotImplementedError(f"Dataset type {config.dataset_type} not implemented.")
     
-    train_loader, eval_loaders = get_data_loaders(
-        train_dataset,
-        eval_datasets,
-        train_batch_size=config.data_loader.train_batch_size,
-        eval_batch_size=config.data_loader.eval_batch_size,
-        num_workers=config.data_loader.num_workers,
-        pin_memory=config.data_loader.pin_memory,
-    )
 
     # --- Construct the model
 
     if config.architecture_type == ArchitectureType.MLP:
         model = mlp_constructor(
-            input_size=reduce(lambda x, y: x * y, get_input_shape(train_dataset)),
+            input_size=reduce(lambda x, y: x * y, get_input_shape(train_loader.dataset)),
             hidden_sizes=[128, 128],
-            output_size=get_output_size(train_dataset),
+            output_size=get_output_size(train_loader.dataset),
         )
         # Get inf types for model
         param_inf_types = get_inf_types(

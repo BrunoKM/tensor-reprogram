@@ -23,8 +23,7 @@ def transformer_constructor(
     architecture_config: TransformerArchitectureConfig,
 ):
     return TransformerModel(
-        architecture_config,
-        architecture_config.ntokens,
+        ntoken=architecture_config.ntokens,
         ninp=architecture_config.d_model,
         nhead=architecture_config.nhead,
         nhid=architecture_config.d_model * architecture_config.ffn_ratio,
@@ -32,6 +31,7 @@ def transformer_constructor(
         dropout=architecture_config.dropout,
         tied=architecture_config.tied,
         bias=architecture_config.add_bias,
+        attn_mult=architecture_config.attn_mult,
         encoder_var=architecture_config.init_var,
         decoder_var=architecture_config.init_var,
     )
@@ -87,18 +87,17 @@ class TransformerModel(nn.Module):
 
     def __init__(
         self,
-        args,
         ntoken,
         ninp,
         nhead,
         nhid,
         nlayers,
+        attn_mult=1.,
         dropout=0.5,
         bias=True,
         encoder_var=1.,
         decoder_var=1.,
         tied=False,
-        standparam=False,
     ):
         """Note: `bias` only affects the bias of decoder"""
         super(TransformerModel, self).__init__()
@@ -121,7 +120,7 @@ class TransformerModel(nn.Module):
             nhead,
             nhid,
             dropout,
-            attn_mult=args.attn_mult,
+            attn_mult=attn_mult,
             bias=bias,
             encoder_var=encoder_var,
             nlayers=nlayers,
