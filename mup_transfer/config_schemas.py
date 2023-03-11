@@ -16,7 +16,7 @@ class DatasetType(str, enum.Enum):
 @dataclass
 class DataLoaderConfig:
     train_batch_size: int = 128
-    eval_batch_size: int = 512
+    eval_batch_size: int = 128
     num_workers: int = 4
     pin_memory: bool = False
     bptt: int = 35  # For sequence input
