@@ -15,7 +15,7 @@ class ArchitectureConfig:
 
 @dataclass
 class DatasetConfig:
-    name: DatasetType = DatasetType.CIFAR10
+    name: DatasetType
 
 
 @dataclass
@@ -26,11 +26,6 @@ class DataLoaderConfig:
     pin_memory: bool = False
 
 
-@dataclass
-class SequenceDataLoaderConfig(DataLoaderConfig):
-    bptt: int = 35
-
-
 class OptimizerType(str, enum.Enum):
     SGD = "SGD"
     ADAM = "ADAM"
@@ -38,7 +33,7 @@ class OptimizerType(str, enum.Enum):
 
 @dataclass
 class OptimizerConfig:
-    optimizer_type: OptimizerType = OptimizerType.SGD
+    optimizer_type: OptimizerType
     lr: float = 1e-3
     optimizer_kwargs: dict[str, Any] = field(default_factory=dict)
 
@@ -52,10 +47,10 @@ class InitialisationConfig:
 class ConfigBase:
 
     architecture: ArchitectureConfig
-    dataset: DatasetConfig = field(default_factory=DatasetConfig)
+    dataset: DatasetConfig
+    optimisation: OptimizerConfig
+    initialisation: InitialisationConfig
     data_loader: DataLoaderConfig = field(default_factory=DataLoaderConfig)
-    optimisation: OptimizerConfig = field(default_factory=OptimizerConfig)
-    initialisation: InitialisationConfig = field(default_factory=InitialisationConfig)
 
 
 @dataclass

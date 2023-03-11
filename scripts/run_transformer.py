@@ -11,7 +11,7 @@ from mup_transfer.architectures.transformer import transformer_constructor
 from hydra.core.config_store import ConfigStore
 
 from mup_transfer.datasets.cifar10 import cifar10_constructor
-from mup_transfer.config import ConfigBase, ConfigTransformer
+from mup_transfer.config_schemas import ConfigBase, ConfigTransformer
 from mup_transfer.datasets.util import get_input_shape, get_output_size
 from mup_transfer.loggers.wandb_logger import WandbLogger
 from mup_transfer.mup.inf_types import get_inf_types, infer_inf_type_sequential_model

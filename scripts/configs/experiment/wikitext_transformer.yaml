@@ -1,6 +1,0 @@
-defaults:
-  - defaults
-  - _self_
-
-dataset: wikitext
-architecture: transformer
