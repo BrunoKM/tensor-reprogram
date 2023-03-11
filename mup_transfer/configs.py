@@ -16,6 +16,7 @@ def register_configs():
 
     # Using the type
     cifar10_mlp_config = ConfigBase(
+        num_epochs=10,
         architecture_type=ArchitectureType.MLP,
         dataset_type=DatasetType.CIFAR10,
         optimisation=OptimizerConfig(optimizer_type=OptimizerType.SGD),
@@ -23,6 +24,7 @@ def register_configs():
     )
 
     wikitext_transformer_config = ConfigBase(
+        num_epochs=40,
         architecture_type=ArchitectureType.TRANSFORMER,
         dataset_type=DatasetType.WIKITEXT,
         optimisation=OptimizerConfig(optimizer_type=OptimizerType.ADAM),

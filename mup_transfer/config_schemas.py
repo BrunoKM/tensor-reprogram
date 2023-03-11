@@ -61,6 +61,7 @@ class MLPArchitectureConfig:
 
 @dataclass
 class ConfigBase:
+    num_epochs: int
     architecture_type: ArchitectureType
     dataset_type: DatasetType
     optimisation: OptimizerConfig
