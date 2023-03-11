@@ -3,7 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from mup_transfer.configs import TransformerArchitectureConfig
+from mup_transfer.config_schemas import TransformerArchitectureConfig
+
 
 """
 The only things we modified from the original pytorch Transformer example are 
@@ -35,7 +36,7 @@ def transformer_constructor(
         nlayers=architecture_config.nlayers,
         dropout=architecture_config.dropout,
         tied=architecture_config.tied,
-        bias=architecture_config.bias,
+        bias=architecture_config.add_bias,
         encoder_var=architecture_config.init_var,
         decoder_var=architecture_config.init_var,
     )
