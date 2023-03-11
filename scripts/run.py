@@ -133,6 +133,13 @@ def main(config: ConfigBase):
     # model_forward = torch.compile(model)
 
     # --- Training and evaluation loop
+    def eval_and_log():
+        for eval_dataset_name, eval_loader in eval_loaders.items():
+            eval_loss, eval_accuracy = eval(model, eval_loader, DEVICE)
+            logger.log_scalar(f"{eval_dataset_name}.loss", eval_loss)
+            logger.log_scalar(f"{eval_dataset_name}.accuracy", eval_accuracy)
+
+    eval_and_log()
     for _ in tqdm.tqdm(range(config.num_epochs), desc="Training epochs"):
         epoch_loss, epoch_accuracy = train(
             model=model,
@@ -143,11 +150,7 @@ def main(config: ConfigBase):
         )
         logger.log_scalar("train.epoch_loss", epoch_loss)
         logger.log_scalar("train.epoch_accuracy", epoch_accuracy)
-
-        for eval_dataset_name, eval_loader in eval_loaders.items():
-            eval_loss, eval_accuracy = eval(model, eval_loader, DEVICE)
-            logger.log_scalar(f"{eval_dataset_name}.loss", eval_loss)
-            logger.log_scalar(f"{eval_dataset_name}.accuracy", eval_accuracy)
+        eval_and_log()
 
     # --- Save the final model
     model_to_save = model.module if isinstance(model, torch.nn.DataParallel) else model
