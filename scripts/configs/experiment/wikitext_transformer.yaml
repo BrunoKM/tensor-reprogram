@@ -4,6 +4,6 @@ architecture_type: TRANSFORMER
 dataset_type: WIKITEXT
 optimization:
   optimizer_type: ADAM
+  clip_grad: 0.25
 data_loader:
   train_batch_size: 20
-  clip_grad: 0.25
