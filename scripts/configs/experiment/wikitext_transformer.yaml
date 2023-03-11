@@ -1,5 +1,5 @@
 # @package _global_
-num_epochs: 10
+num_epochs: 40
 architecture_type: TRANSFORMER
 dataset_type: WIKITEXT
 optimization:
