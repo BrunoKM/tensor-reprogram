@@ -9,6 +9,7 @@ def train(
     model: torch.nn.Module,
     train_loader: torch.utils.data.DataLoader,
     optim: torch.optim.Optimizer,
+    clip_grad: float,
     device: torch.device = torch.device('cpu'),
     logger: LoggerBase = NullLogger(),
 ) -> tuple[float, float]:
@@ -24,6 +25,10 @@ def train(
         loss = F.cross_entropy(out.reshape(-1, out.size(-1)), y.view(-1))
         optim.zero_grad()
         loss.backward()
+
+        # Clip gradients
+        if clip_grad < float('inf'):
+            torch.nn.utils.clip_grad_norm_(model.parameters(), clip_grad)
         optim.step()
 
         # Log metrics
