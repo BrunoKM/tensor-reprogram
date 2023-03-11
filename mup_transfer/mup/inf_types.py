@@ -38,20 +38,10 @@ def infer_inf_type_sequential_model(model: torch.nn.Sequential) -> dict[str, Inf
         key=itemgetter(0),  # Sort by param. name
     )
     weight_names = [name for name, param in named_params if len(param.shape) >= 2]
-    bias_names = [name for name, param in named_params if len(param.shape) <= 1]
 
     input_layer_weight_name = weight_names[0]
     output_layer_weight_name = weight_names[-1]
-
-    # Get a mapping from inf. type to list of param. names of that inf. type
-    inf_type_groups: dict[InfType, list[str]] = {
-        InfType.INPUT_OR_BIAS: [input_layer_weight_name] + bias_names,
-        InfType.OUTPUT_WEIGHT: [output_layer_weight_name],
-        InfType.HIDDEN_WEIGHT: [name for name, param in named_params if name not in {input_layer_weight_name, output_layer_weight_name, *bias_names}],
-    }
-    # Invert the mapping to be a mapping from param. name to inf. type
-    return {name: inf_type for inf_type, names in inf_type_groups.items() for name in names}
-    
+    return get_inf_types(model, [input_layer_weight_name], [output_layer_weight_name])
 
 
 def get_inf_types(model: torch.nn.Module, input_weights_names: Sequence[str], output_weights_names: Sequence[str]) -> dict[str, InfType]:
@@ -61,7 +51,6 @@ def get_inf_types(model: torch.nn.Module, input_weights_names: Sequence[str], ou
     infinite width type.
     """
     named_params: list[tuple[str, nn.Parameter]] = list(model.named_parameters())
-    weight_names = [name for name, param in named_params if len(param.shape) >= 2]
     bias_names = [name for name, param in named_params if len(param.shape) <= 1]
 
     # Get a mapping from inf. type to list of param. names of that inf. type
