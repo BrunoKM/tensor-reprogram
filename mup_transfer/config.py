@@ -5,7 +5,7 @@ from typing import Any
 
 @dataclass
 class ArchitectureConfig:
-    pass
+    bias: bool = True
 
 
 @dataclass

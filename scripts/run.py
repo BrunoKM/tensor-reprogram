@@ -71,6 +71,7 @@ def main(cfg: ConfigBase):
         input_size=reduce(lambda x, y: x * y, get_input_shape(train_dataset)),
         hidden_sizes=[128, 128],
         output_size=get_output_size(train_dataset),
+        bias=cfg.architecture.bias,
     )
     model.to(DEVICE)
 
