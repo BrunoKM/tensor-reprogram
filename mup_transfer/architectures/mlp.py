@@ -8,11 +8,12 @@ def mlp_constructor(
     output_size: int,
     activation_constructor: Callable[[], nn.Module] = nn.ReLU,
     flattent_input: bool = True,
+    bias: bool = True,
 ) -> nn.Sequential:
-    layers: list[nn.Module] = [nn.Linear(input_size, hidden_sizes[0])]
+    layers: list[nn.Module] = [nn.Linear(input_size, hidden_sizes[0], bias=bias)]
     for in_size, out_size in zip(hidden_sizes, hidden_sizes[1:] + [output_size]):
         layers.append(activation_constructor())
-        layers.append(nn.Linear(in_size, out_size))
+        layers.append(nn.Linear(in_size, out_size, bias=bias))
     if flattent_input:
         layers.insert(0, nn.Flatten())
     return nn.Sequential(*layers)
