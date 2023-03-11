@@ -69,7 +69,6 @@ def main(cfg: ConfigBase):
 
     # --- Construct the model
 
-    # TODO: Make general and dependent on the config
     if cfg.architecture.name == ArchitectureType.MLP:
         model = mlp_constructor(
             input_size=reduce(lambda x, y: x * y, get_input_shape(train_dataset)),
