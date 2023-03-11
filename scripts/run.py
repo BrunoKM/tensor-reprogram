@@ -12,7 +12,6 @@ from pathlib import Path
 from mup_transfer.architectures.mlp import mlp_constructor
 from hydra.core.config_store import ConfigStore
 from mup_transfer.architectures.transformer import transformer_constructor
-from mup_transfer.configs import register_configs
 
 from mup_transfer.data_utils import get_data_loaders
 from mup_transfer.datasets.cifar10 import cifar10_constructor
@@ -33,7 +32,6 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # Register the defaults from the structured dataclass config schema:
 cs = ConfigStore.instance()
 cs.store(name="config_base", node=ConfigBase)
-register_configs()
 
 
 @hydra.main(config_path="configs/", config_name="defaults", version_base=None)
