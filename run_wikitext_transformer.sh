@@ -14,6 +14,6 @@ export WANDB_API_KEY=9a337dffa0b41297c8870d83df890ea39dc02163
 for width in 64 128 256 512 1024 2048 4096; do
     python scripts/run.py \
         +experiment=wikitext_transformer \
-        optimization.lr=1e-$SLURM_ARRAY_TASK_ID \
+        optimization.lr=$(perl -e "print 2**-$SLURM_ARRAY_TASK_ID") \
         transformer_config.d_model=$width
 done 
