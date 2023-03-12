@@ -81,7 +81,7 @@ def main(config: ConfigBase):
     if config.architecture_type == ArchitectureType.MLP:
         model = mlp_constructor(
             input_size=reduce(lambda x, y: x * y, get_input_shape(train_loader.dataset)),
-            hidden_sizes=[128, 128],
+            hidden_sizes=config.mlp_config.hidden_sizes,
             output_size=get_output_size(train_loader.dataset),
         )
         # Get inf types for model
