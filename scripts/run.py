@@ -135,7 +135,7 @@ def main(config: ConfigBase):
                 param_inf_types=param_inf_types,
             )
         else:
-            param_groups = named_params
+            param_groups = model.parameters()
         optim = torch.optim.SGD(
             params=param_groups,  # type: ignore
             lr=config.optimization.lr,
@@ -149,7 +149,7 @@ def main(config: ConfigBase):
                 param_inf_types=param_inf_types,
             )
         else:
-            param_groups = named_params
+            param_groups = model.parameters()
         optim = torch.optim.Adam(
             params=param_groups,  # type: ignore
             lr=config.optimization.lr,
