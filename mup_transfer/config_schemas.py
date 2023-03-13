@@ -74,3 +74,5 @@ class ConfigBase:
     transformer_config: TransformerArchitectureConfig = field(default_factory=TransformerArchitectureConfig)
     mlp_config: MLPArchitectureConfig = field(default_factory=MLPArchitectureConfig)
     data_loader: DataLoaderConfig = field(default_factory=DataLoaderConfig)
+
+    log_to_wandb: bool = True

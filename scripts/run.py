@@ -50,6 +50,8 @@ def main(config: ConfigBase):
         settings=wandb.Settings(start_method="thread"),
         # Log the config to WandB
         config=omegaconf.OmegaConf.to_container(config, resolve=True, throw_on_missing=True),
+        # Allow for disabling upload when testing code
+        mode=("disabled" if not config.log_to_wandb else "online"),
     )
 
     # --- Construct and get the dataset
