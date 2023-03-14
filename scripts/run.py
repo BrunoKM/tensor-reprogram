@@ -81,9 +81,18 @@ def main(config: ConfigBase):
     # --- Construct the model
 
     if config.architecture_type == ArchitectureType.MLP:
+        # Only avoid silent unintended behaviour.
+        if (hasattr(config.mlp_config, "hidden_sizes") and
+            (hasattr(config.mlp_config, "width") or hasattr(config.mlp_config, "depth"))):
+            raise ValueError(
+                "Either specify 'hidden_sizes' OR 'width' and 'depth'.")
+        if hasattr(config.mlp_config, "hidden_sizes"):
+            hidden_sizes = config.mlp_config.hidden_sizes
+        else:
+            hidden_sizes = [config.mlp_config.width for _ in range(config.mlp_config.depth)]
         model = mlp_constructor(
             input_size=reduce(lambda x, y: x * y, get_input_shape(train_loader.dataset)),
-            hidden_sizes=config.mlp_config.hidden_sizes,
+            hidden_sizes=hidden_sizes,
             output_size=get_output_size(train_loader.dataset),
         )
         # Get inf types for model
