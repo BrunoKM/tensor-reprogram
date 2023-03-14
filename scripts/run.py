@@ -82,7 +82,7 @@ def main(config: ConfigBase):
 
     if config.architecture_type == ArchitectureType.MLP:
         # Avoid silent unintended behaviour.
-        if (config.mlp_config.hidden_sizes is not None) != (config.mlp_config.width is not None and config.mlp_config.depth is not None):
+        if (config.mlp_config.hidden_sizes is not None) == (config.mlp_config.width is not None and config.mlp_config.depth is not None):
             raise ValueError(
                 f"Either specify 'hidden_sizes' OR both 'width' and 'depth'.\n"
                 f"Currenly: 'hidden_sizes'={config.mlp_config.hidden_sizes}, 'width'={config.mlp_config.width}, 'depth'={config.mlp_config.depth}."
