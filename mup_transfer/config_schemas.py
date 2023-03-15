@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 import enum
-from typing import Any
+from typing import Any, Optional
 
 
 class ArchitectureType(str, enum.Enum):
@@ -59,8 +59,10 @@ class TransformerArchitectureConfig:
 @dataclass
 class MLPArchitectureConfig:
     add_bias: bool = True
-    hidden_sizes: list[int] = field(default_factory=lambda: [256, 256])
+    hidden_sizes: Optional[list[int]] = None
     paper_init: bool = False
+    width: Optional[int] = None
+    depth: Optional[int] = None
 
 
 @dataclass

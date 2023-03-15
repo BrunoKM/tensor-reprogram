@@ -81,9 +81,21 @@ def main(config: ConfigBase):
     # --- Construct the model
 
     if config.architecture_type == ArchitectureType.MLP:
+        # Avoid silent unintended behaviour.
+        if (config.mlp_config.hidden_sizes is not None) == (config.mlp_config.width is not None and config.mlp_config.depth is not None):
+            raise ValueError(
+                f"Either specify 'hidden_sizes' OR both 'width' and 'depth'.\n"
+                f"Currenly: 'hidden_sizes'={config.mlp_config.hidden_sizes}, 'width'={config.mlp_config.width}, 'depth'={config.mlp_config.depth}."
+            )
+        if config.mlp_config.hidden_sizes is not None:
+            hidden_sizes = config.mlp_config.hidden_sizes
+        else:
+            assert config.mlp_config.width is not None and config.mlp_config.depth is not None, "If hidden sizes not specified, specify both width and depth."
+            hidden_sizes = [config.mlp_config.width for _ in range(config.mlp_config.depth)]
+
         model = mlp_constructor(
             input_size=reduce(lambda x, y: x * y, get_input_shape(train_loader.dataset)),
-            hidden_sizes=config.mlp_config.hidden_sizes,
+            hidden_sizes=hidden_sizes,
             output_size=get_output_size(train_loader.dataset),
             bias=config.mlp_config.add_bias,
             paper_init=config.mlp_config.paper_init,
