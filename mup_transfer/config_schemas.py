@@ -60,6 +60,7 @@ class TransformerArchitectureConfig:
 class MLPArchitectureConfig:
     add_bias: bool = True
     hidden_sizes: list[int] = field(default_factory=lambda: [256, 256])
+    paper_init: bool = False
 
 
 @dataclass

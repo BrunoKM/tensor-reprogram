@@ -85,6 +85,8 @@ def main(config: ConfigBase):
             input_size=reduce(lambda x, y: x * y, get_input_shape(train_loader.dataset)),
             hidden_sizes=config.mlp_config.hidden_sizes,
             output_size=get_output_size(train_loader.dataset),
+            bias=config.mlp_config.add_bias,
+            paper_init=config.mlp_config.paper_init,
         )
         # Get inf types for model
         param_inf_types = get_inf_types(
