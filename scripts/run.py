@@ -138,6 +138,7 @@ def main(config: ConfigBase):
     # --- Initialise the model
     # Initialise the model with mup
     named_params = list(model.named_parameters())
+    param_names = {name for name, _ in named_params}
     init_scales = {
         name: (
             config.initialisation.init_scales_per_param[name]
@@ -146,7 +147,14 @@ def main(config: ConfigBase):
         )
         for name, param in named_params
     }
-    logging.info("Initialisation scales: {init_scales}")
+    # Validate that all the init_scales_per_param parameter names are valid:
+    for name in config.initialisation.init_scales_per_param.keys():
+        if name not in param_names:
+            raise ValueError(
+                f"Parameter name '{name}' in 'init_scales_per_param' is not a valid parameter name."
+                "\nValid parameter names are: {param_names}"
+            )
+    logging.info(f"Initialisation scales: {init_scales}")
     if config.use_mu_param:
         mup_initialise(
             named_params=named_params,
@@ -159,6 +167,14 @@ def main(config: ConfigBase):
 
     # --- Construct the optimizer
     # Learning rates per param:
+
+    # Validate that all the per_param_lr parameter names are valid:
+    for name in config.optimization.per_param_lr.keys():
+        if name not in param_names:
+            raise ValueError(
+                f"Parameter name '{name}' in 'per_param_lr' is not a valid parameter name."
+                "\nValid parameter names are: {param_names}"
+            )
     lr_scale_per_param = {
         name: (
             config.optimization.per_param_lr[name]
@@ -167,6 +183,8 @@ def main(config: ConfigBase):
         )
         for name, param in named_params
     }
+    logging.info(f"Learning rates per parameter: {lr_scale_per_param}")
+
     if config.optimization.optimizer_type == OptimizerType.SGD:
         optim_constructor = torch.optim.SGD
     elif config.optimization.optimizer_type == OptimizerType.ADAM:
@@ -194,7 +212,6 @@ def main(config: ConfigBase):
             {"params": [param], "lr": lr_scale_per_param[name]}
             for name, param in model.named_parameters()
         ]
-    logging.info(f"Param groups: {param_groups}")
     optim = optim_constructor(
         params=param_groups,  # type: ignore
         lr=config.optimization.lr,
