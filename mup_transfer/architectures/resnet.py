@@ -1,0 +1,118 @@
+import functools
+from typing import Callable, Protocol
+import torch
+import torch.nn as nn
+
+from torch import Tensor
+
+
+class Identity(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        return x
+
+
+class SplitAggregate(nn.Module):
+    """
+    Allows for specifying a "split" in a sequential model where the input passes through multiple paths and is
+    aggregated at the output (by default: added).
+
+    Useful for specifying a residual connection in a model.
+    """
+    def __init__(self, path1: nn.Module, path2: nn.Module, aggregate_func: Callable[[Tensor, Tensor], Tensor] = torch.add) -> None:
+        super().__init__()
+        self.path1 = path1
+        self.path2 = path2
+        self.aggregate_func = aggregate_func
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.aggregate_func(
+            self.path1(x),
+            self.path2(x),
+        )
+
+
+class NormalizationConstructorType(Protocol):
+    def __call__(self, num_features: int) -> nn.Module:
+        ...
+
+
+def wide_resnet_constructor(
+        blocks_per_stage: int,
+        width_factor: int,
+        activation_constructor: Callable[[], nn.Module] = functools.partial(nn.ReLU, inplace=True),
+        normalization_constructor: NormalizationConstructorType = nn.BatchNorm2d,
+    ) -> nn.Sequential:
+    """
+    Construct a Wide ResNet model.
+
+    Follows the architecture described in Table 1 of the paper:
+        Wide Residual Networks
+        https://arxiv.org/pdf/1605.07146.pdf
+
+    This is a Wide-ResNet with the block structure following the variant (sometimes known as ResNetV2) described in:
+        Identity Mappings in Deep Residual Networks
+        https://arxiv.org/abs/1603.05027
+
+    Args:
+        blocks_per_stage: Number of blocks per stage.
+        width_factor: Width factor.
+
+    Returns:
+        The constructed model.
+    """
+    assert blocks_per_stage >= 1, f"blocks_per_stage must be >= 1, got {blocks_per_stage}"
+
+    def block_constructor(in_channels: int, out_channels: int) -> nn.Module:
+        return SplitAggregate(
+            # Skip connection
+            Identity(),
+            # Conv. block
+            nn.Sequential(
+                normalization_constructor(out_channels),
+                activation_constructor(),
+                nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False),
+                normalization_constructor(out_channels),
+                activation_constructor(),
+                nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False),
+            )
+        )
+    
+    def downsample_block_constructor(in_channels: int, out_channels: int) -> nn.Module:
+        return SplitAggregate(
+            # Skip connection with 1x1 conv downsampling
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=2, bias=False),
+            # Conv. block
+            nn.Sequential(
+                normalization_constructor(out_channels),
+                activation_constructor(),
+                nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=2, padding=1, bias=False),
+                normalization_constructor(out_channels),
+                activation_constructor(),
+                nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False),
+            )
+        )
+
+    model = nn.Sequential(
+        nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False),
+        normalization_constructor(16),
+        activation_constructor(),
+        # Stage 1
+        block_constructor(16, 16 * width_factor),
+        *(block_constructor(16, 16 * width_factor) for _ in range(blocks_per_stage - 1)),
+        # Stage 2
+        downsample_block_constructor(16 * width_factor, 32 * width_factor),
+        *(block_constructor(32 * width_factor, 32 * width_factor) for _ in range(blocks_per_stage - 1)),
+        # Stage 3
+        downsample_block_constructor(32 * width_factor, 64 * width_factor),
+        *(block_constructor(64 * width_factor, 64 * width_factor) for _ in range(blocks_per_stage - 1)),
+        # Output
+        nn.AdaptiveAvgPool2d((1, 1)),
+        nn.Flatten(),
+        nn.Linear(64 * width_factor, 10),
+    )
+    # Initialise
+
+    return model
