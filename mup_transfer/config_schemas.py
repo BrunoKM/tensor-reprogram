@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 import enum
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 
 class ArchitectureType(str, enum.Enum):
@@ -31,6 +31,8 @@ class OptimizerType(str, enum.Enum):
 class OptimizerConfig:
     optimizer_type: OptimizerType = OptimizerType.SGD
     lr: float = 1e-3
+    # If specified, overrides the "global" lr with a per-parameter learning rate.
+    per_param_lr: dict[str, float] = field(default_factory=dict)
     optimizer_kwargs: dict[str, Any] = field(default_factory=dict)
     clip_grad: float = float("inf")
 
@@ -38,6 +40,8 @@ class OptimizerConfig:
 @dataclass
 class InitialisationConfig:
     init_scale: float = 1.0
+    # If specified, overrides the "global" init_scale with a per-parameter init_scale
+    init_scales_per_param: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass
@@ -79,3 +83,4 @@ class ConfigBase:
     data_loader: DataLoaderConfig = field(default_factory=DataLoaderConfig)
 
     log_to_wandb: bool = True
+    wandb_project_name: str = "tensor-reprogram"

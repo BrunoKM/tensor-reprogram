@@ -21,7 +21,7 @@ from mup_transfer.datasets.wikitext2 import wikitext_constructor
 from mup_transfer.loggers.wandb_logger import WandbLogger
 from mup_transfer.mup.inf_types import get_inf_types
 from mup_transfer.mup.utils import get_param_name
-from mup_transfer.mup.init import mup_initialise
+from mup_transfer.mup.init import mup_initialise, scale_init_inplace
 from mup_transfer.mup.optim_params import get_adam_param_groups, get_mup_sgd_param_groups
 from mup_transfer.train import train
 from mup_transfer.eval import eval
@@ -44,7 +44,7 @@ def main(config: ConfigBase):
 
     # --- Set up logging
     logger = WandbLogger(
-        project="tensor-reprogram",
+        project=config.wandb_project_name,
         entity="tensor-programs-v-reproduction",  # Log to the team's entity project
         # This is needed to make WandB and Hydra play nicely:
         settings=wandb.Settings(start_method="thread"),
@@ -57,7 +57,8 @@ def main(config: ConfigBase):
     # --- Construct and get the dataset
     if config.dataset_type == DatasetType.CIFAR10:
         train_dataset, eval_datasets = cifar10_constructor(
-            Path(__file__).parent.parent / "data",  # Default data directory at the root of repository
+            Path(__file__).parent.parent
+            / "data",  # Default data directory at the root of repository
         )
         train_loader, eval_loaders = get_data_loaders(
             train_dataset,
@@ -69,20 +70,22 @@ def main(config: ConfigBase):
         )
     elif config.dataset_type == DatasetType.WIKITEXT:
         train_loader, eval_loaders = wikitext_constructor(
-            root=Path(__file__).parent.parent / "data",  # Default data directory at the root of repository
+            root=Path(__file__).parent.parent
+            / "data",  # Default data directory at the root of repository
             train_batch_size=config.data_loader.train_batch_size,
             test_batch_size=config.data_loader.eval_batch_size,
             bptt=config.data_loader.bptt,
         )
     else:
         raise NotImplementedError(f"Dataset type {config.dataset_type} not implemented.")
-    
 
     # --- Construct the model
 
     if config.architecture_type == ArchitectureType.MLP:
         # Avoid silent unintended behaviour.
-        if (config.mlp_config.hidden_sizes is not None) == (config.mlp_config.width is not None and config.mlp_config.depth is not None):
+        if (config.mlp_config.hidden_sizes is not None) == (
+            config.mlp_config.width is not None and config.mlp_config.depth is not None
+        ):
             raise ValueError(
                 f"Either specify 'hidden_sizes' OR both 'width' and 'depth'.\n"
                 f"Currenly: 'hidden_sizes'={config.mlp_config.hidden_sizes}, 'width'={config.mlp_config.width}, 'depth'={config.mlp_config.depth}."
@@ -90,7 +93,9 @@ def main(config: ConfigBase):
         if config.mlp_config.hidden_sizes is not None:
             hidden_sizes = config.mlp_config.hidden_sizes
         else:
-            assert config.mlp_config.width is not None and config.mlp_config.depth is not None, "If hidden sizes not specified, specify both width and depth."
+            assert (
+                config.mlp_config.width is not None and config.mlp_config.depth is not None
+            ), "If hidden sizes not specified, specify both width and depth."
             hidden_sizes = [config.mlp_config.width for _ in range(config.mlp_config.depth)]
 
         model = mlp_constructor(
@@ -107,7 +112,7 @@ def main(config: ConfigBase):
                 get_param_name(
                     model,
                     # Get the weight of the first nn.Linear layer in the model.
-                    next(module for module in model if isinstance(module, nn.Linear)).weight, # type: ignore
+                    next(module for module in model if isinstance(module, nn.Linear)).weight,  # type: ignore
                 ),
             ],
             output_weights_names=[get_param_name(model, model[-1].weight)],  # type: ignore
@@ -120,7 +125,7 @@ def main(config: ConfigBase):
                 get_param_name(
                     model,
                     # Get the weight of the first nn.Linear layer in the model.
-                    next(module for module in model.modules() if isinstance(module, nn.Embedding)).weight, # type: ignore
+                    next(module for module in model.modules() if isinstance(module, nn.Embedding)).weight,  # type: ignore
                 ),
             ],
             output_weights_names=[get_param_name(model, model.decoder.weight)],  # type: ignore
@@ -130,52 +135,76 @@ def main(config: ConfigBase):
 
     model.to(DEVICE)
 
+    # --- Initialise the model
     # Initialise the model with mup
     named_params = list(model.named_parameters())
+    init_scales = {
+        name: (
+            config.initialisation.init_scales_per_param[name]
+            if name in config.initialisation.init_scales_per_param.keys()
+            else config.initialisation.init_scale
+        )
+        for name, param in named_params
+    }
+    logging.info("Initialisation scales: {init_scales}")
     if config.use_mu_param:
         mup_initialise(
             named_params=named_params,
             param_inf_types=param_inf_types,
             init_scale=config.initialisation.init_scale,
         )
-
+    else:
+        # If not using mup, just scale the aleardy-applied initialisation in-place
+        scale_init_inplace(named_params=named_params, scales=init_scales)
 
     # --- Construct the optimizer
+    # Learning rates per param:
+    lr_scale_per_param = {
+        name: (
+            config.optimization.per_param_lr[name]
+            if name in config.optimization.per_param_lr.keys()
+            else config.optimization.lr
+        )
+        for name, param in named_params
+    }
     if config.optimization.optimizer_type == OptimizerType.SGD:
-        if config.use_mu_param:
-            param_groups = get_mup_sgd_param_groups(
-                named_params=named_params,
-                init_lr_scale=config.optimization.lr,
-                param_inf_types=param_inf_types,
-            )
-        else:
-            param_groups = model.parameters()
-        optim = torch.optim.SGD(
-            params=param_groups,  # type: ignore
-            lr=config.optimization.lr,
-            **config.optimization.optimizer_kwargs,
-        )
+        optim_constructor = torch.optim.SGD
     elif config.optimization.optimizer_type == OptimizerType.ADAM:
-        if config.use_mu_param:
-            param_groups = get_adam_param_groups(
-                named_params=named_params,
-                init_lr_scale=config.optimization.lr,
-                param_inf_types=param_inf_types,
-            )
-        else:
-            param_groups = model.parameters()
-        optim = torch.optim.Adam(
-            params=param_groups,  # type: ignore
-            lr=config.optimization.lr,
-            **config.optimization.optimizer_kwargs,
-        )
+        optim_constructor = torch.optim.Adam
     else:
         raise ValueError(f"Unknown optimizer type: {config.optimization.optimizer_type}")
+
+    if config.use_mu_param:
+        if config.optimization.optimizer_type == OptimizerType.SGD:
+            param_groups = get_mup_sgd_param_groups(
+                named_params=named_params,
+                init_lr_scale=lr_scale_per_param,
+                param_inf_types=param_inf_types,
+            )
+        elif config.optimization.optimizer_type == OptimizerType.ADAM:
+            param_groups = get_adam_param_groups(
+                named_params=named_params,
+                init_lr_scale=lr_scale_per_param,
+                param_inf_types=param_inf_types,
+            )
+        else:
+            raise ValueError(f"Unknown optimizer type: {config.optimization.optimizer_type}")
+    else:
+        param_groups = [
+            {"params": [param], "lr": lr_scale_per_param[name]}
+            for name, param in model.named_parameters()
+        ]
+    logging.info(f"Param groups: {param_groups}")
+    optim = optim_constructor(
+        params=param_groups,  # type: ignore
+        lr=config.optimization.lr,
+        **config.optimization.optimizer_kwargs,
+    )
 
     # TODO: Maybe add lr schedule.
 
     # --- Compile the model
-    # model_forward = torch.compile(model)
+    # model = torch.compile(model)
 
     # --- Training and evaluation loop
     def eval_and_log():

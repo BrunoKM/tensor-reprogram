@@ -70,3 +70,17 @@ def mup_initialise_param(param: nn.Parameter, inf_type: InfType, init_scale: flo
             raise ValueError(f"Unrecognised infinite width type: {inf_type}")
     # Initialise in place.
     nn.init.normal_(param, mean=0.0, std=init_scale * scale_multiplier)
+
+
+def scale_init_inplace(named_params: Sequence[tuple[str, nn.Parameter]], scales: Union[float, dict[str, float]]) -> None:
+    """
+    In-place scale the parameters of a model by a given scale.
+
+    Args:
+        named_params: A sequence of (name, param) pairs, where name is the name of the parameter, and param is the parameter itself.
+        scale: The scale to multiply the parameters by.
+    """
+    for name, param in named_params:
+        scale = scales if isinstance(scales, float) else scales[name]
+        param.data *= scale
+    
