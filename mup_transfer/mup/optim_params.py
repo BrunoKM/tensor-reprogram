@@ -5,7 +5,6 @@ in the mu-parameterisation given in:
 """
 
 from typing import Sequence, TypedDict, Union
-import torch
 import torch.nn as nn
 
 from mup_transfer.mup.inf_types import InfType
