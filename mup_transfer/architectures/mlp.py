@@ -14,7 +14,7 @@ def mlp_constructor(
 ) -> nn.Sequential:
     layers: list[tuple[str, nn.Module]] = [("input_layer", nn.Linear(input_size, hidden_sizes[0], bias=bias))]
     for i in range(len(hidden_sizes) - 1):
-        in_size, out_size = hidden_sizes)[i : i + 2]
+        in_size, out_size = hidden_sizes[i : i + 2]
         layers.append((f"activation{i}", activation_constructor()))
         layers.append((f"hidden_layer{i}", nn.Linear(in_size, out_size, bias=bias)))
     layers.append((f"activation{len(hidden_sizes)}", activation_constructor()))
