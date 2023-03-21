@@ -14,7 +14,7 @@ def get_mean_and_std_of_uniform(low, high):
 
 sweep_config = {
     "method": "bayes",
-    "metric": {"name": "train_loss", "goal": "minimize"},
+    "metric": {"name": "train.loss", "goal": "minimize"},
     "name": "sweep",
     "program": "scripts/launch_run.py",
     "command": ["${env}", "${interpreter}", "${program}", "--file_path", "${args_json_file}"],
