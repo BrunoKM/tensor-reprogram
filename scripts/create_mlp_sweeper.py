@@ -17,7 +17,7 @@ sweep_config = {
     "metric": {"name": "train_loss", "goal": "minimize"},
     "name": "sweep",
     "program": "scripts/launch_run.py",
-    "command": ["${env}", "${interpreter}", "${program}", "--file_path=${args_json_file}"],
+    "command": ["${env}", "${interpreter}", "${program}", "--file_path", "${args_json_file}"],
     "parameters": {
         "initialisation": {
             "parameters": {
