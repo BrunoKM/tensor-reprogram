@@ -18,7 +18,7 @@ def mlp_constructor(
         layers.append((f"activation{i}", activation_constructor()))
         layers.append((f"hidden_layer{i}", nn.Linear(in_size, out_size, bias=bias)))
     layers.append((f"activation{len(hidden_sizes)}", activation_constructor()))
-    layers.append((f"output_layer", nn.Linear(hidden_sizes[-1], output_size, bias=bias)))
+    layers.append((f"output_layer", nn.Linear(hidden_sizes[-1], output_size, bias=False)))
     if flattent_input:
         layers.insert(0, ("input_flatten", nn.Flatten()))
 
