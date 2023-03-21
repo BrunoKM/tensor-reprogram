@@ -1,3 +1,4 @@
+import math
 from typing import TypedDict
 import numpy as np
 import wandb
@@ -25,10 +26,13 @@ sweep_config = {
                     "parameters": {
                         f"{layer_name}.{param_name}": {
                             "distribution": "log_normal",
-                            **get_mean_and_std_of_uniform(np.log(1e-3), np.log(1e2)),
+                            # **get_mean_and_std_of_uniform(np.log(1e-3), np.log(1e2)),
+                            "mu": math.log(5e-3),
+                            "sigma": 1.2, 
                         }
                         for layer_name in ["input_layer", "hidden_layer0", "output_layer"]
                         for param_name in ["weight", "bias"]
+                        if not (layer_name == "output_layer" and param_name == "bias")
                     },
                 },
             }
@@ -39,10 +43,13 @@ sweep_config = {
                     "parameters": {
                         f"{layer_name}.{param_name}": {
                             "distribution": "log_normal",
-                            **get_mean_and_std_of_uniform(np.log(1e-10), np.log(1e3)),
+                            # **get_mean_and_std_of_uniform(np.log(1e-10), np.log(1e3)),
+                            "mu": math.log(1.0),
+                            "sigma": 1.5, 
                         }
                         for layer_name in ["input_layer", "hidden_layer0", "output_layer"]
                         for param_name in ["weight", "bias"]
+                        if not (layer_name == "output_layer" and param_name == "bias")
                     },
                 },
             }
