@@ -143,8 +143,8 @@ def main(config: ConfigBase):
         name: (
             config.initialisation.init_scales_per_param[name]
             if name in config.initialisation.init_scales_per_param.keys()
-            else config.initialisation.init_scale
-        )
+            else config.initialisation.default_init_scale
+        ) * config.initialisation.global_init_scale
         for name, param in named_params
     }
     # Validate that all the init_scales_per_param parameter names are valid:
@@ -159,7 +159,7 @@ def main(config: ConfigBase):
         mup_initialise(
             named_params=named_params,
             param_inf_types=param_inf_types,
-            init_scale=config.initialisation.init_scale,
+            init_scale=init_scales,
         )
     else:
         # If not using mup, just scale the aleardy-applied initialisation in-place
@@ -179,8 +179,8 @@ def main(config: ConfigBase):
         name: (
             config.optimization.per_param_lr[name]
             if name in config.optimization.per_param_lr.keys()
-            else config.optimization.lr
-        )
+            else config.optimization.default_lr
+        ) * config.optimization.global_lr
         for name, param in named_params
     }
     logging.info(f"Learning rates per parameter: {lr_scale_per_param}")
@@ -214,7 +214,7 @@ def main(config: ConfigBase):
         ]
     optim = optim_constructor(
         params=param_groups,  # type: ignore
-        lr=config.optimization.lr,
+        lr=config.optimization.default_lr,
         **config.optimization.optimizer_kwargs,
     )
 
