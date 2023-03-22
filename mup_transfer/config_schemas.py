@@ -30,7 +30,8 @@ class OptimizerType(str, enum.Enum):
 @dataclass
 class OptimizerConfig:
     optimizer_type: OptimizerType = OptimizerType.SGD
-    lr: float = 1e-3
+    default_lr: float = 1e-3  # Default learning rate if a param specific lr is not specified
+    global_lr: float = 1.0  # Multiplier for all learning rates
     # If specified, overrides the "global" lr with a per-parameter learning rate.
     per_param_lr: dict[str, float] = field(default_factory=dict)
     optimizer_kwargs: dict[str, Any] = field(default_factory=dict)
@@ -39,7 +40,8 @@ class OptimizerConfig:
 
 @dataclass
 class InitialisationConfig:
-    init_scale: float = 1.0
+    default_init_scale: float = 1.0  # Default init scale if a param specific init_scale is not specified
+    global_init_scale: float = 1.0  # Multiplier for all init scales
     # If specified, overrides the "global" init_scale with a per-parameter init_scale
     init_scales_per_param: dict[str, float] = field(default_factory=dict)
 
