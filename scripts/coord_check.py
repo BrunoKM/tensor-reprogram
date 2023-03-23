@@ -6,6 +6,8 @@ https://github.com/microsoft/mup/blob/main/mup/coord_check.py
 from copy import copy
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+import seaborn as sns
 import pandas as pd
 import torch
 import torch.nn as nn
@@ -418,7 +420,7 @@ def get_coord_data(models, dataloader, optimizer='sgd', lr=None, **kwargs):
 
 def plot_coord_data(df, y='l1', save_to=None, suptitle=None, x='width', hue='module',
                     legend='full', name_contains=None, name_not_contains=None,
-                    loglog=True, logbase=2, face_color=None, subplot_width=5,
+                    loglog=True, logbase=10, face_color=None, subplot_width=5,
                     subplot_height=4):
     '''Plot coord check data `df` obtained from `get_coord_data`.
     Input:
@@ -471,9 +473,8 @@ def plot_coord_data(df, y='l1', save_to=None, suptitle=None, x='width', hue='mod
 
     ts = df.t.unique()
 
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    sns.set()
+    sns.set_style("ticks")
+    sns.set_context("notebook", font_scale=1.5, rc={"lines.linewidth": 2.5})
 
     def tight_layout(plt):
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
@@ -485,11 +486,12 @@ def plot_coord_data(df, y='l1', save_to=None, suptitle=None, x='width', hue='mod
         t = int(t)
         plt.subplot(1, len(ts), t)
         sns.lineplot(x=x, y=y, data=df[df.t==t], hue=hue, legend=legend if t==1 else None)
-        plt.title(f't={t}')
+        plt.title(f'Optim. Steps={t}')
         if t != 1:
             plt.ylabel('')
         if loglog:
             plt.loglog(base=logbase)
+        sns.despine()
     if suptitle:
         plt.suptitle(suptitle)
     tight_layout(plt)
@@ -569,10 +571,10 @@ def main():
             )
             # record data from the model activations over a few steps of training
             # this returns a pandas dataframe
-            df = get_coord_data(models, dataloader, optimizer=optim, nseeds=5)
+            df = get_coord_data(models, dataloader, optimizer=optim, nseeds=5, cuda=torch.cuda.is_available(), nsteps=5)
             # This saves the coord check plots to filename.
             param_case = 'mup' if mup else 'sp'
-            plot_coord_data(df, save_to=f'coord_check_{optim}_{param_case}.png')
+            plot_coord_data(df, save_to=f'coord_check_{optim}_{param_case}.pdf')
 
 
 if __name__ == "__main__":
