@@ -134,3 +134,4 @@ dmypy.json
 data/
 outputs/
 wandb/
+plots/figures
