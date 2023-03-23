@@ -15,13 +15,13 @@ from mup_transfer.architectures.transformer import transformer_constructor
 
 from mup_transfer.data_utils import get_data_loaders
 from mup_transfer.datasets.cifar10 import cifar10_constructor
-from mup_transfer.config_schemas import ArchitectureType, ConfigBase, DatasetType, OptimizerType
+from mup_transfer.config_schemas import ArchitectureType, ConfigBase, DatasetType, OptimizerType, ParameterisationType
 from mup_transfer.datasets.util import get_input_shape, get_output_size
 from mup_transfer.datasets.wikitext2 import wikitext_constructor
 from mup_transfer.loggers.wandb_logger import WandbLogger
 from mup_transfer.mup.inf_types import get_inf_types
 from mup_transfer.mup.utils import get_param_name
-from mup_transfer.mup.init import mup_initialise, scale_init_inplace
+from mup_transfer.mup.init import mup_initialise, scale_init_inplace, standard_param_initialise, torch_param_initialise
 from mup_transfer.mup.optim_params import get_adam_param_groups, get_mup_sgd_param_groups
 from mup_transfer.train import train
 from mup_transfer.eval import eval
@@ -103,19 +103,12 @@ def main(config: ConfigBase):
             hidden_sizes=hidden_sizes,
             output_size=get_output_size(train_loader.dataset),
             bias=config.mlp_config.add_bias,
-            paper_init=config.mlp_config.paper_init,
         )
         # Get inf types for model
         param_inf_types = get_inf_types(
             model=model,
-            input_weights_names=[
-                get_param_name(
-                    model,
-                    # Get the weight of the first nn.Linear layer in the model.
-                    next(module for module in model if isinstance(module, nn.Linear)).weight,  # type: ignore
-                ),
-            ],
-            output_weights_names=[get_param_name(model, model[-1].weight)],  # type: ignore
+            input_weights_names=["input_layer.weight"],
+            output_weights_names=["output_layer.weight"],
         )
     elif config.architecture_type == ArchitectureType.TRANSFORMER:
         model = transformer_constructor(config.transformer_config)
@@ -155,18 +148,28 @@ def main(config: ConfigBase):
                 "\nValid parameter names are: {param_names}"
             )
     logging.info(f"Initialisation scales: {init_scales}")
-    if config.use_mu_param:
+    if config.parameterisation == ParameterisationType.MUP:
         mup_initialise(
             named_params=named_params,
             param_inf_types=param_inf_types,
             init_scale=init_scales,
+            distribution=config.initialisation.init_distribution,
         )
-    else:
-        # If not using mup, just scale the aleardy-applied initialisation in-place
-        scale_init_inplace(named_params=named_params, scales=init_scales)
+    elif config.parameterisation == ParameterisationType.SP:
+        # If not using muP, initialise using SP.
+        standard_param_initialise(
+            named_params=named_params,
+            init_scale=init_scales,
+            distribution=config.initialisation.init_distribution,
+        )
+    elif config.parameterisation == ParameterisationType.PYTORCH:
+        torch_param_initialise(
+            named_params=named_params,
+            init_scale=init_scales,
+            distribution=config.initialisation.init_distribution,
+        )
 
     # --- Construct the optimizer
-    # Learning rates per param:
 
     # Validate that all the per_param_lr parameter names are valid:
     for name in config.optimization.per_param_lr.keys():
@@ -175,6 +178,7 @@ def main(config: ConfigBase):
                 f"Parameter name '{name}' in 'per_param_lr' is not a valid parameter name."
                 "\nValid parameter names are: {param_names}"
             )
+    # Learning rates per param:
     lr_scale_per_param = {
         name: (
             config.optimization.per_param_lr[name]
@@ -192,7 +196,7 @@ def main(config: ConfigBase):
     else:
         raise ValueError(f"Unknown optimizer type: {config.optimization.optimizer_type}")
 
-    if config.use_mu_param:
+    if config.parameterisation == ParameterisationType.MUP:
         if config.optimization.optimizer_type == OptimizerType.SGD:
             param_groups = get_mup_sgd_param_groups(
                 named_params=named_params,

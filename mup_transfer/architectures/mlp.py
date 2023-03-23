@@ -10,7 +10,6 @@ def mlp_constructor(
     activation_constructor: Callable[[], nn.Module] = nn.ReLU,
     flattent_input: bool = True,
     bias: bool = True,
-    paper_init: bool = False,  # Same init as in the original paper.
 ) -> nn.Sequential:
     layers: list[tuple[str, nn.Module]] = [("input_layer", nn.Linear(input_size, hidden_sizes[0], bias=bias))]
     for i in range(len(hidden_sizes) - 1):
@@ -25,13 +24,6 @@ def mlp_constructor(
     layers_dict = OrderedDict(layers)
     model = nn.Sequential(layers_dict)
 
-    if paper_init:
-        # Same init. for Standard Param. as the Tensor Programs V paper.
-        model.apply(init_weights)
-        nn.init.zeros_(layers_dict["output_layer"].weight)
-        if hasattr(layers_dict["output_layer"], "bias"):
-            if layers_dict["output_layer"].bias is not None:
-                nn.init.zeros_(layers_dict["output_layer"].bias)
     return model
 
 

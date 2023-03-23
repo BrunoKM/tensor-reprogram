@@ -4,8 +4,10 @@ Initialisation functions for mu-parameterisation. These follow the parameterisat
 because using the parameterisations in Table 8 requires altering the model with additional 
 scalar multipliers.
 """
+import math
 from typing import Sequence, Union
 import torch.nn as nn
+from mup_transfer.config_schemas import DistributionType
 
 from mup_transfer.mup.inf_types import InfType
 
@@ -13,7 +15,8 @@ from mup_transfer.mup.inf_types import InfType
 def mup_initialise(
     named_params: Sequence[tuple[str, nn.Parameter]],
     param_inf_types: dict[str, InfType],
-    init_scale: Union[float, dict[str, float]] = 1.0,
+    init_scale: Union[float, dict[str, float]],
+    distribution: DistributionType,
 ) -> None:
     """
     In-place initialise the parameters of a model using the MUP initialisation scheme described in
@@ -44,10 +47,10 @@ def mup_initialise(
         inf_type = param_inf_types[name]
         init_scale_for_param = init_scale[name] if isinstance(init_scale, dict) else init_scale
 
-        mup_initialise_param(param, inf_type=inf_type, init_scale=init_scale_for_param)
+        mup_initialise_param(param, inf_type=inf_type, init_scale=init_scale_for_param, distribution=distribution)
 
 
-def mup_initialise_param(param: nn.Parameter, inf_type: InfType, init_scale: float) -> None:
+def mup_initialise_param(param: nn.Parameter, inf_type: InfType, init_scale: float, distribution: DistributionType) -> None:
     """
     In-place initialise a parameter using the MUP initialisation scheme described in
     "Tensor Programs V: Tuning Large Neural Networks via Zero-shot Hyperparameter Transfer", as described
@@ -69,7 +72,7 @@ def mup_initialise_param(param: nn.Parameter, inf_type: InfType, init_scale: flo
         case _:
             raise ValueError(f"Unrecognised infinite width type: {inf_type}")
     # Initialise in place.
-    nn.init.normal_(param, mean=0.0, std=init_scale * scale_multiplier)
+    initialise_param_with_std(param, scale=init_scale * scale_multiplier, distribution=distribution)
 
 
 def scale_init_inplace(named_params: Sequence[tuple[str, nn.Parameter]], scales: Union[float, dict[str, float]]) -> None:
@@ -84,3 +87,92 @@ def scale_init_inplace(named_params: Sequence[tuple[str, nn.Parameter]], scales:
         scale = scales if isinstance(scales, float) else scales[name]
         param.data *= scale
     
+
+def standard_param_initialise(
+    named_params: Sequence[tuple[str, nn.Parameter]],
+    init_scale: Union[float, dict[str, float]],
+    distribution: DistributionType,
+) -> None:
+    """
+    In-place initialise the parameters of a model using the standard_param initialisation scheme described in
+    "Tensor Programs V: Tuning Large Neural Networks via Zero-shot Hyperparameter Transfer".
+
+    Note: The parameters are ASSUMED to have shape (fan_out, fan_in, ...) or (fan_out,)!! 
+        The latter is the case for biases.
+
+    Args:
+        named_params: A sequence of (name, param) pairs, where name is the name of the parameter, and param is the parameter itself.
+        init_scale: The scale of the initialisation. This is a tunable hyperparameter constant that is independent of scale. If a dictionary,
+            then the keys should be the names of the parameters, and the values should be the scale for that parameter.
+        distribution: The distribution to use for the initialisation.
+    """
+    # Initialise all params
+    for name, param in named_params:
+        init_scale_for_param = init_scale[name] if isinstance(init_scale, dict) else init_scale
+        standard_param_initialise_param(param, init_scale=init_scale_for_param, distribution=distribution)
+
+
+def standard_param_initialise_param(param: nn.Parameter, init_scale: float, distribution: DistributionType) -> None:
+    """
+    In-place initialise a parameter using the standard_param initialisation scheme described in
+    "Tensor Programs V: Tuning Large Neural Networks via Zero-shot Hyperparameter Transfer", as described
+    in Table 3.
+
+    Args:
+        param: The parameter to initialise.
+        init_scale: The scale of the initialisation. This is a tunable hyperparameter constant that is independent of scale.
+    """
+    # Fan-in of a bias is 1
+    fan_in = param.shape[1] if len(param.shape) >= 2 else 1
+
+    scale_multiplier = (1 / fan_in) ** 0.5
+    # Initialise in place.
+    initialise_param_with_std(param, scale=init_scale * scale_multiplier, distribution=distribution)
+
+
+def torch_param_initialise(
+    named_params: Sequence[tuple[str, nn.Parameter]],
+    init_scale: Union[float, dict[str, float]],
+    distribution: DistributionType,
+) -> None:
+    """
+    Args:
+        named_params: A sequence of (name, param) pairs, where name is the name of the parameter, and param is the parameter itself.
+        init_scale: The scale of the initialisation. This is a tunable hyperparameter constant that is independent of scale. If a dictionary,
+            then the keys should be the names of the parameters, and the values should be the scale for that parameter.
+        distribution: The distribution to use for the initialisation.
+    """
+    # Initialise all params
+    for name, param in named_params:
+        init_scale_for_param = init_scale[name] if isinstance(init_scale, dict) else init_scale
+        # If parameter is a bias, find the matching weight to calculate fan_in with
+        if name.endswith(".bias"):
+            # Only replace the last instance of ".bias" at the end of the str with ".weight"
+            weight_name = name.rsplit(".", 1)[0] + ".weight"
+            assert weight_name in dict(named_params), f"Could not find a matching weight for bias {name}"
+            weight = dict(named_params)[weight_name]
+            layer_fan_in = weight.shape[1]
+        elif param.ndim >= 2:
+            layer_fan_in = param.shape[1]
+        else:
+            raise ValueError(f"Parameter {name} has a shape of {param.shape} and is not a bias, which is not supported by torch_param_initialise")
+        scale_multiplier = (1 / layer_fan_in) ** 0.5
+        # Initialise in place.
+        initialise_param_with_std(param, scale=init_scale_for_param * scale_multiplier, distribution=distribution)
+
+
+def initialise_param_with_std(param: nn.Parameter, scale: float, distribution: DistributionType) -> None:
+    """
+
+    Args:
+        param: The parameter to initialise.
+        init_scale: The scale of the initialisation. This is a tunable hyperparameter constant that is independent of scale.
+        distribution: The distribution to initialise the parameters with ("NORMAL", "UNIFORM").
+    """
+    # Initialise in place.
+    if distribution == DistributionType.NORMAL:
+        nn.init.normal_(param, mean=0.0, std=scale)
+    elif distribution == DistributionType.UNIFORM:
+        nn.init.uniform_(param, a=-scale * math.sqrt(3), b=scale * math.sqrt(3))
+    else:
+        raise ValueError(f"Unrecognised distribution type: {distribution}")
