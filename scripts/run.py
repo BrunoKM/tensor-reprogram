@@ -136,7 +136,7 @@ def main(config: ConfigBase):
         )
         param_inf_types = get_inf_types(
             model=model,
-            input_weights_names=[get_param_name(model, model[0])],  # type: ignore
+            input_weights_names=[get_param_name(model, model[0].weight)],  # type: ignore
             output_weights_names=[
                 get_param_name(
                     model,
