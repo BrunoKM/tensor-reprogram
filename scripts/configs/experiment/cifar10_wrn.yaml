@@ -1,0 +1,17 @@
+# @package _global_
+num_epochs: 100
+architecture_type: WRN
+wrn_config:
+  blocks_per_stage: 2
+dataset_type: CIFAR10
+optimization:
+  optimizer_type: SGD
+  cosine_lr_schedule: True
+  optimizer_kwargs:
+    momentum: 0.9
+    nesterov: True
+dataset:
+  use_data_augmentation: True
+data_loader:
+  train_batch_size: 128
+  eval_batch_size: 512
