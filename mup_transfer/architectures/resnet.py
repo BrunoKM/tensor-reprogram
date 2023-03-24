@@ -113,6 +113,5 @@ def wide_resnet_constructor(
         nn.Flatten(),
         nn.Linear(64 * width_factor, 10),
     )
-    # Initialise
 
     return model
