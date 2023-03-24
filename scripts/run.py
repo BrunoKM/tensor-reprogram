@@ -119,16 +119,31 @@ def main(config: ConfigBase):
             input_weights_names=[
                 get_param_name(
                     model,
-                    # Get the weight of the first nn.Linear layer in the model.
+                    # Get the weight of the first nn.Embedding layer in the model.
                     next(module for module in model.modules() if isinstance(module, nn.Embedding)).weight,  # type: ignore
                 ),
             ],
             output_weights_names=[get_param_name(model, model.decoder.weight)],  # type: ignore
         )
     elif config.architecture_type == ArchitectureType.WRN:
+        if config.wrn_config.blocks_per_stage is None:
+            raise ValueError("Must specify blocks_per_stage for Wide-ResNet.")
+        if config.wrn_config.width_factor is None:
+            raise ValueError("Must specify width_factor for Wide-ResNet.")
         model = wide_resnet_constructor(
             blocks_per_stage=config.wrn_config.blocks_per_stage,
             width_factor=config.wrn_config.width_factor,
+        )
+        param_inf_types = get_inf_types(
+            model=model,
+            input_weights_names=[get_param_name(model, model[0])],  # type: ignore
+            output_weights_names=[
+                get_param_name(
+                    model,
+                    # Get the weight of the first nn.Linear layer in the model.
+                    next(module for module in model.modules() if isinstance(module, nn.Linear)).weight,  # type: ignore
+                ),
+            ],
         )
     else:
         raise ValueError(f"Unknown architecture type: {config.architecture_type}")
