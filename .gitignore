@@ -135,3 +135,6 @@ data/
 outputs/
 wandb/
 plots/figures
+
+# Slurm output files
+*.out
