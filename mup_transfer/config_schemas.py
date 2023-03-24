@@ -43,6 +43,7 @@ class OptimizerConfig:
     per_param_lr: dict[str, float] = field(default_factory=dict)
     optimizer_kwargs: dict[str, Any] = field(default_factory=dict)
     clip_grad: float = float("inf")
+    cosine_lr_schedule: bool = False
 
 
 class DistributionType(str, enum.Enum):

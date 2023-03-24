@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 import tqdm
 import torch.nn.functional as F
@@ -9,6 +11,7 @@ def train(
     model: torch.nn.Module,
     train_loader: torch.utils.data.DataLoader,
     optim: torch.optim.Optimizer,
+    scheduler: Optional[torch.optim.lr_scheduler] = None,
     clip_grad: float,
     device: torch.device = torch.device('cpu'),
     logger: LoggerBase = NullLogger(),
@@ -30,6 +33,8 @@ def train(
         if clip_grad < float('inf'):
             torch.nn.utils.clip_grad_norm_(model.parameters(), clip_grad)
         optim.step()
+        if scheduler is not None:
+            scheduler.step()
 
         # Log metrics
         n_correct = (out.argmax(-1) == y).sum().detach().item()
