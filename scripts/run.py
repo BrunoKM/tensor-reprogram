@@ -22,7 +22,7 @@ from mup_transfer.datasets.wikitext2 import wikitext_constructor
 from mup_transfer.loggers.wandb_logger import WandbLogger
 from mup_transfer.mup.inf_types import get_inf_types
 from mup_transfer.mup.utils import get_param_name
-from mup_transfer.mup.init import mup_initialise, scale_init_inplace, standard_param_initialise, torch_param_initialise
+from mup_transfer.mup.init import mup_initialise, standard_param_initialise, torch_param_initialise
 from mup_transfer.mup.optim_params import get_adam_param_groups, get_mup_sgd_param_groups
 from mup_transfer.train import train
 from mup_transfer.eval import eval
