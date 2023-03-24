@@ -71,7 +71,7 @@ def wide_resnet_constructor(
             Identity(),
             # Conv. block
             nn.Sequential(
-                normalization_constructor(out_channels),
+                normalization_constructor(in_channels),
                 activation_constructor(),
                 nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False),
                 normalization_constructor(out_channels),
@@ -86,7 +86,7 @@ def wide_resnet_constructor(
             nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=2, bias=False),
             # Conv. block
             nn.Sequential(
-                normalization_constructor(out_channels),
+                normalization_constructor(in_channels),
                 activation_constructor(),
                 nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=2, padding=1, bias=False),
                 normalization_constructor(out_channels),
