@@ -256,8 +256,8 @@ def main(config: ConfigBase):
             model=model,
             train_loader=train_loader,
             optim=optim,
-            scheduler=scheduler,
             clip_grad=config.optimization.clip_grad,
+            scheduler=scheduler,
             device=DEVICE,
             logger=logger,
         )
