@@ -8,6 +8,7 @@ optimization:
   optimizer_type: SGD
   cosine_lr_schedule: True
   optimizer_kwargs:
+    weight_decay: 5e-4
     momentum: 0.9
     nesterov: True
 dataset:
