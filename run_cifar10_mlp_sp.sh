@@ -50,6 +50,7 @@ for width in 64 128 256 512 1024 2048 4096; do
     python scripts/run.py \
         +experiment=cifar10_mlp \
         parameterisation="SP" \
+        initialisation.init_distribution="NORMAL" \
         optimization.global_lr=$GLOBAL_LR \
         mlp_config.hidden_sizes=\[$width,$width\] \
         ++optimization.per_param_lr="{hidden_layer0.bias: 16.6007237198, hidden_layer0.weight: 0.02152539891931283, input_layer.bias: 7.56926283168, input_layer.weight: 8.96819147457, output_layer.weight: 3.68129559e-7}" \
