@@ -96,12 +96,15 @@ def wide_resnet_constructor(
         )
 
     model = nn.Sequential(
-        nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False),
-        normalization_constructor(16),
+        # The output width of the first conv. layer being 16 * width_factor is a slight
+        # deviation from the paper repository 
+        # https://github.com/szagoruyko/wide-residual-networks/blob/master/pytorch/resnet.py
+        nn.Conv2d(3, 16 * width_factor, kernel_size=3, stride=1, padding=1, bias=False),
+        normalization_constructor(16 * width_factor),
         activation_constructor(),
         # Stage 1
-        block_constructor(16, 16 * width_factor),
-        *(block_constructor(16, 16 * width_factor) for _ in range(blocks_per_stage - 1)),
+        block_constructor(16 * width_factor, 16 * width_factor),
+        *(block_constructor(16 * width_factor, 16 * width_factor) for _ in range(blocks_per_stage - 1)),
         # Stage 2
         downsample_block_constructor(16 * width_factor, 32 * width_factor),
         *(block_constructor(32 * width_factor, 32 * width_factor) for _ in range(blocks_per_stage - 1)),
