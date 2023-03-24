@@ -11,7 +11,7 @@ def train(
     model: torch.nn.Module,
     train_loader: torch.utils.data.DataLoader,
     optim: torch.optim.Optimizer,
-    scheduler: Optional[torch.optim.lr_scheduler] = None,
+    scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
     clip_grad: float,
     device: torch.device = torch.device('cpu'),
     logger: LoggerBase = NullLogger(),
