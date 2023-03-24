@@ -1,11 +1,12 @@
 from dataclasses import dataclass, field
 import enum
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 
 class ArchitectureType(str, enum.Enum):
     MLP = "MLP"
     TRANSFORMER = "TRANSFORMER"
+    WRN = "WRN"
 
 
 class DatasetType(str, enum.Enum):
@@ -20,6 +21,11 @@ class DataLoaderConfig:
     num_workers: int = 4
     pin_memory: bool = False
     bptt: int = 35  # For sequence input
+
+
+@dataclass
+class DatasetConfig:
+    use_data_augmentation: bool = False
 
 
 class OptimizerType(str, enum.Enum):
@@ -121,6 +127,12 @@ class MLPArchitectureConfig:
 
 
 @dataclass
+class WRNArchitectureConfig:
+    blocks_per_stage: Optional[int] = None
+    width_factor: Optional[int] = None
+
+
+@dataclass
 class ConfigBase:
     num_epochs: int
     architecture_type: ArchitectureType
@@ -132,7 +144,9 @@ class ConfigBase:
     transformer_config: TransformerArchitectureConfig = field(
         default_factory=TransformerArchitectureConfig
     )
+    wrn_config: WRNArchitectureConfig = field(default_factory=WRNArchitectureConfig)
     mlp_config: MLPArchitectureConfig = field(default_factory=MLPArchitectureConfig)
+    dataset: DatasetConfig = field(default_factory=DatasetConfig)
     data_loader: DataLoaderConfig = field(default_factory=DataLoaderConfig)
 
     log_to_wandb: bool = True
