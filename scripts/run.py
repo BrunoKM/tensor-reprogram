@@ -12,6 +12,7 @@ from pathlib import Path
 from mup_transfer.architectures.mlp import mlp_constructor
 from hydra.core.config_store import ConfigStore
 from mup_transfer.architectures.transformer import transformer_constructor
+from mup_transfer.architectures.resnet import wide_resnet_constructor
 
 from mup_transfer.data_utils import get_data_loaders
 from mup_transfer.datasets.cifar10 import cifar10_constructor
@@ -59,6 +60,7 @@ def main(config: ConfigBase):
         train_dataset, eval_datasets = cifar10_constructor(
             Path(__file__).parent.parent
             / "data",  # Default data directory at the root of repository
+            use_data_augmentation=config.dataset.use_data_augmentation,
         )
         train_loader, eval_loaders = get_data_loaders(
             train_dataset,
@@ -122,6 +124,11 @@ def main(config: ConfigBase):
                 ),
             ],
             output_weights_names=[get_param_name(model, model.decoder.weight)],  # type: ignore
+        )
+    elif config.architecture_type == ArchitectureType.WRN:
+        model = wide_resnet_constructor(
+            blocks_per_stage=config.wrn_config.blocks_per_stage,
+            width_factor=config.wrn_config.width_factor,
         )
     else:
         raise ValueError(f"Unknown architecture type: {config.architecture_type}")
@@ -222,7 +229,13 @@ def main(config: ConfigBase):
         **config.optimization.optimizer_kwargs,
     )
 
-    # TODO: Maybe add lr schedule.
+    if config.optimization.cosine_lr_schedule:
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optim,
+            T_max=config.num_epochs * len(train_loader),
+        )
+    else:
+        scheduler = None
 
     # --- Compile the model
     # model = torch.compile(model)
@@ -243,6 +256,7 @@ def main(config: ConfigBase):
             model=model,
             train_loader=train_loader,
             optim=optim,
+            scheduler=scheduler,
             clip_grad=config.optimization.clip_grad,
             device=DEVICE,
             logger=logger,
