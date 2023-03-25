@@ -15,6 +15,7 @@ def wikitext_constructor(
     train_batch_size: int,
     test_batch_size: int,
     bptt: int,
+    shuffle: bool = False,
 ) -> tuple[LMDataLoader, dict[str, LMDataLoader]]:
     train_iter = WikiText2(root=str(root), split="train")
     tokenizer = get_tokenizer(None)
@@ -34,7 +35,7 @@ def wikitext_constructor(
     val_data = data_process(val_iter)
     test_data = data_process(test_iter)
 
-    train_dataloader = LMDataLoader([train_data], bs=train_batch_size, seq_len=bptt)
+    train_dataloader = LMDataLoader([train_data], bs=train_batch_size, seq_len=bptt, shuffle=shuffle)
     valid_dataloader = LMDataLoader([val_data], bs=test_batch_size, seq_len=bptt)
     test_dataloader = LMDataLoader([test_data], bs=test_batch_size, seq_len=bptt)
     return train_dataloader, {"valid": valid_dataloader, "test": test_dataloader}

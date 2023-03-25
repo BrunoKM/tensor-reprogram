@@ -20,6 +20,7 @@ class DataLoaderConfig:
     eval_batch_size: int = 128
     num_workers: int = 4
     pin_memory: bool = False
+    shuffle: bool = True
     bptt: int = 35  # For sequence input
 
 

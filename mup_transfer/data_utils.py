@@ -9,11 +9,12 @@ def get_data_loaders(
     eval_batch_size: int = 512,
     num_workers: int = 4,
     pin_memory: bool = False,
+    shuffle: bool = True,
 ) -> tuple[DataLoader, dict[str, DataLoader]]:
     train_loader = DataLoader(
         train_dataset,
         batch_size=train_batch_size,
-        shuffle=True,
+        shuffle=shuffle,
         num_workers=num_workers,
         pin_memory=pin_memory,
     )
