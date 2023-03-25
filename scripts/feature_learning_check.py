@@ -1,0 +1,325 @@
+import os
+import hydra
+import omegaconf
+import torch
+import torch.nn as nn
+import tqdm
+import wandb
+import logging
+
+from functools import reduce
+from pathlib import Path
+from mup_transfer.architectures.mlp import mlp_constructor
+from hydra.core.config_store import ConfigStore
+from mup_transfer.architectures.transformer import transformer_constructor
+from mup_transfer.architectures.resnet import wide_resnet_constructor
+
+from mup_transfer.data_utils import get_data_loaders
+from mup_transfer.datasets.cifar10 import cifar10_constructor
+from mup_transfer.config_schemas import ArchitectureType, ConfigBase, DatasetType, OptimizerType, ParameterisationType
+from mup_transfer.datasets.util import get_input_shape, get_output_size
+from mup_transfer.datasets.wikitext2 import wikitext_constructor
+from mup_transfer.loggers.wandb_logger import WandbLogger
+from mup_transfer.mup.inf_types import get_inf_types
+from mup_transfer.mup.utils import get_param_name
+from mup_transfer.mup.init import mup_initialise, standard_param_initialise, torch_param_initialise, scale_init_inplace
+from mup_transfer.mup.optim_params import get_adam_param_groups, get_mup_sgd_param_groups
+from mup_transfer.train import train
+from mup_transfer.eval import eval
+
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+
+class CoordCheckConfig(ConfigBase):
+    num_steps: int = 5
+
+
+# Register the defaults from the structured dataclass config schema:
+cs = ConfigStore.instance()
+cs.store(name="config_base", node=CoordCheckConfig)
+
+
+@hydra.main(config_path="configs/", config_name="defaults", version_base=None)
+def main(config: CoordCheckConfig):
+    """
+    cfg is typed as ConfigBase for duck-typing, but during runtime it's actually an OmegaConf object.
+    """
+    assert config.data_loader.train_batch_size == 1, "This script only works with batch size 1"
+    assert config.data_loader.eval_batch_size == 1, "This script only works with batch size 1"
+    assert config.data_loader.shuffle == False
+
+    ###########################################################################
+    # BELOW IDENTICAL TO run.py. SHOULD BE REFACTORED INTO A FUNCTION IN FUTURE
+    ###########################################################################
+        logging.info(f"Hydra current working directory: {os.getcwd()}")
+    # --- Runtime setup (logging directories, etc.)
+
+    # --- Set up logging
+    logger = WandbLogger(
+        project=config.wandb_project_name,
+        entity="tensor-programs-v-reproduction",  # Log to the team's entity project
+        # This is needed to make WandB and Hydra play nicely:
+        settings=wandb.Settings(start_method="thread"),
+        # Log the config to WandB
+        config=omegaconf.OmegaConf.to_container(config, resolve=True, throw_on_missing=True),
+        # Allow for disabling upload when testing code
+        mode=("disabled" if not config.log_to_wandb else "online"),
+    )
+
+    # --- Construct and get the dataset
+    if config.dataset_type == DatasetType.CIFAR10:
+        train_dataset, eval_datasets = cifar10_constructor(
+            Path(__file__).parent.parent
+            / "data",  # Default data directory at the root of repository
+            use_data_augmentation=config.dataset.use_data_augmentation,
+        )
+        train_loader, eval_loaders = get_data_loaders(
+            train_dataset,
+            eval_datasets,
+            train_batch_size=config.data_loader.train_batch_size,
+            eval_batch_size=config.data_loader.eval_batch_size,
+            num_workers=config.data_loader.num_workers,
+            pin_memory=config.data_loader.pin_memory,
+            shuffle=config.data_loader.shuffle,
+        )
+    elif config.dataset_type == DatasetType.WIKITEXT:
+        train_loader, eval_loaders = wikitext_constructor(
+            root=Path(__file__).parent.parent
+            / "data",  # Default data directory at the root of repository
+            train_batch_size=config.data_loader.train_batch_size,
+            test_batch_size=config.data_loader.eval_batch_size,
+            bptt=config.data_loader.bptt,
+        )
+    else:
+        raise NotImplementedError(f"Dataset type {config.dataset_type} not implemented.")
+
+    # --- Construct the model
+
+    if config.architecture_type == ArchitectureType.MLP:
+        # Avoid silent unintended behaviour.
+        if (config.mlp_config.hidden_sizes is not None) == (
+            config.mlp_config.width is not None and config.mlp_config.depth is not None
+        ):
+            raise ValueError(
+                f"Either specify 'hidden_sizes' OR both 'width' and 'depth'.\n"
+                f"Currenly: 'hidden_sizes'={config.mlp_config.hidden_sizes}, 'width'={config.mlp_config.width}, 'depth'={config.mlp_config.depth}."
+            )
+        if config.mlp_config.hidden_sizes is not None:
+            hidden_sizes = config.mlp_config.hidden_sizes
+        else:
+            assert (
+                config.mlp_config.width is not None and config.mlp_config.depth is not None
+            ), "If hidden sizes not specified, specify both width and depth."
+            hidden_sizes = [config.mlp_config.width for _ in range(config.mlp_config.depth)]
+
+        model = mlp_constructor(
+            input_size=reduce(lambda x, y: x * y, get_input_shape(train_loader.dataset)),
+            hidden_sizes=hidden_sizes,
+            output_size=get_output_size(train_loader.dataset),
+            bias=config.mlp_config.add_bias,
+        )
+        # Get inf types for model
+        param_inf_types = get_inf_types(
+            model=model,
+            input_weights_names=["input_layer.weight"],
+            output_weights_names=["output_layer.weight"],
+        )
+    elif config.architecture_type == ArchitectureType.TRANSFORMER:
+        model = transformer_constructor(config.transformer_config)
+        param_inf_types = get_inf_types(
+            model=model,
+            input_weights_names=[
+                get_param_name(
+                    model,
+                    # Get the weight of the first nn.Embedding layer in the model.
+                    next(module for module in model.modules() if isinstance(module, nn.Embedding)).weight,  # type: ignore
+                ),
+            ],
+            output_weights_names=[get_param_name(model, model.decoder.weight)],  # type: ignore
+        )
+    elif config.architecture_type == ArchitectureType.WRN:
+        if config.wrn_config.blocks_per_stage is None:
+            raise ValueError("Must specify blocks_per_stage for Wide-ResNet.")
+        if config.wrn_config.width_factor is None:
+            raise ValueError("Must specify width_factor for Wide-ResNet.")
+        model = wide_resnet_constructor(
+            blocks_per_stage=config.wrn_config.blocks_per_stage,
+            width_factor=config.wrn_config.width_factor,
+        )
+        param_inf_types = get_inf_types(
+            model=model,
+            input_weights_names=[get_param_name(model, model[0].weight)],  # type: ignore
+            output_weights_names=[
+                get_param_name(
+                    model,
+                    # Get the weight of the first nn.Linear layer in the model.
+                    next(module for module in model.modules() if isinstance(module, nn.Linear)).weight,  # type: ignore
+                ),
+            ],
+        )
+    else:
+        raise ValueError(f"Unknown architecture type: {config.architecture_type}")
+
+    model.to(DEVICE)
+
+    # --- Initialise the model
+    # Initialise the model with mup
+    named_params = list(model.named_parameters())
+    param_names = {name for name, _ in named_params}
+
+    params_without_init = set()
+    for module_name, module_type in model.named_modules():
+        if isinstance(module_type, (torch.nn.LayerNorm, torch.nn.modules.batchnorm._BatchNorm)):
+            logging.info(f"Module without mup initialization: {module_name} {module_type}")
+            params_without_init.update({get_param_name(model, param) for param in module_type.parameters()})
+    logging.info(f"Params without mup initialization: {params_without_init}")
+
+    for param_name in config.initialisation.init_scales_per_param.keys():
+        if param_name in params_without_init:
+            raise ValueError(f"Initialize parameters of a LayerNorm/BatchNorm layer: {param_name}")
+
+    init_scales = {
+        name: (
+            config.initialisation.init_scales_per_param[name]
+            if name in config.initialisation.init_scales_per_param.keys()
+            else config.initialisation.default_init_scale
+        ) * config.initialisation.global_init_scale
+        for name, _ in named_params
+    }
+    # Validate that all the init_scales_per_param parameter names are valid:
+    for name in config.initialisation.init_scales_per_param.keys():
+        if name not in param_names:
+            raise ValueError(
+                f"Parameter name '{name}' in 'init_scales_per_param' is not a valid parameter name."
+                "\nValid parameter names are: {param_names}"
+            )
+    logging.info(f"Initialisation scales: {init_scales}")
+    if config.parameterisation == ParameterisationType.MUP:
+        mup_initialise(
+            named_params=named_params,
+            param_inf_types=param_inf_types,
+            init_scale=init_scales,
+            distribution=config.initialisation.init_distribution,
+            params_without_init=params_without_init,
+        )
+    elif config.parameterisation == ParameterisationType.SP:
+        # If not using muP, initialise using SP.
+        standard_param_initialise(
+            named_params=named_params,
+            init_scale=init_scales,
+            distribution=config.initialisation.init_distribution,
+            params_without_init=params_without_init,
+        )
+    elif config.parameterisation == ParameterisationType.PYTORCH:
+        torch_param_initialise(
+            named_params=named_params,
+            init_scale=init_scales,
+            distribution=config.initialisation.init_distribution,
+            params_without_init=params_without_init,
+        )
+    elif config.parameterisation == ParameterisationType.NONE:
+        scale_init_inplace(named_params, init_scales)
+    else:
+        raise ValueError(f"Unknown parameterisation: {config.parameterisation}")
+
+    # --- Construct the optimizer
+
+    # Validate that all the per_param_lr parameter names are valid:
+    for name in config.optimization.per_param_lr.keys():
+        if name not in param_names:
+            raise ValueError(
+                f"Parameter name '{name}' in 'per_param_lr' is not a valid parameter name."
+                "\nValid parameter names are: {param_names}"
+            )
+    # Learning rates per param:
+    lr_scale_per_param = {
+        name: (
+            config.optimization.per_param_lr[name]
+            if name in config.optimization.per_param_lr.keys()
+            else config.optimization.default_lr
+        ) * config.optimization.global_lr
+        for name, param in named_params
+    }
+    logging.info(f"Learning rates per parameter: {lr_scale_per_param}")
+
+    if config.optimization.optimizer_type == OptimizerType.SGD:
+        optim_constructor = torch.optim.SGD
+    elif config.optimization.optimizer_type == OptimizerType.ADAM:
+        optim_constructor = torch.optim.Adam
+    else:
+        raise ValueError(f"Unknown optimizer type: {config.optimization.optimizer_type}")
+
+    if config.parameterisation == ParameterisationType.MUP:
+        if config.optimization.optimizer_type == OptimizerType.SGD:
+            param_groups = get_mup_sgd_param_groups(
+                named_params=named_params,
+                init_lr_scale=lr_scale_per_param,
+                param_inf_types=param_inf_types,
+            )
+        elif config.optimization.optimizer_type == OptimizerType.ADAM:
+            param_groups = get_adam_param_groups(
+                named_params=named_params,
+                init_lr_scale=lr_scale_per_param,
+                param_inf_types=param_inf_types,
+            )
+        else:
+            raise ValueError(f"Unknown optimizer type: {config.optimization.optimizer_type}")
+    else:
+        param_groups = [
+            {"params": [param], "lr": lr_scale_per_param[name]}
+            for name, param in model.named_parameters()
+        ]
+    optim = optim_constructor(
+        params=param_groups,  # type: ignore
+        lr=config.optimization.default_lr,
+        **config.optimization.optimizer_kwargs,
+    )
+
+    if config.optimization.cosine_lr_schedule:
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optim,
+            T_max=config.num_epochs * len(train_loader),
+        )
+    else:
+        scheduler = None
+
+    ###########################################################################
+    # ABOVE IDENTICAL TO run.py. SHOULD BE REFACTORED INTO A FUNCTION IN FUTURE
+    ###########################################################################
+
+    # --- Training and evaluation loop
+    def coord_scale(x: torch.Tensor):
+        return ((x ** 2).sum() / x.numel()).sqrt()
+
+    # Dict from module name to a copy of the module at initialisation.
+    modules_at_init: dict[str, nn.Module] = {}
+    # Dict from module name to a copy of the input features to that module at
+    # initialisation.
+    features_at_init: dict[str, torch.Tensor] = {}
+
+    for module in model.modules():
+        match module:
+            case nn.Linear() | nn.Conv2d() | nn.Embedding():
+                # Register a hook
+                pass
+            case _:
+                pass
+
+    step = 0
+    def log_feature_changes_callback():
+        step += 1
+
+    epoch_loss, epoch_accuracy = train(
+        model=model,
+        train_loader=eval_loaders["test"],  # USE AN EVAL LOADER FOR TRAINING
+        optim=optim,
+        clip_grad=config.optimization.clip_grad,
+        scheduler=scheduler,
+        device=DEVICE,
+        logger=logger,
+        post_step_callback=log_feature_changes_callback,
+    )
+
+
+if __name__ == "__main__":
+    main()
