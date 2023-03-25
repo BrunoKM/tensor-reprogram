@@ -309,7 +309,7 @@ def main(config: CoordCheckConfig):
     def log_feature_changes_callback():
         step += 1
 
-    epoch_loss, epoch_accuracy = train(
+    train(
         model=model,
         train_loader=eval_loaders["test"],  # USE AN EVAL LOADER FOR TRAINING
         optim=optim,
