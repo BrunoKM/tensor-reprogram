@@ -155,16 +155,11 @@ def main(config: ConfigBase):
     named_params = list(model.named_parameters())
     param_names = {name for name, _ in named_params}
 
-    modules_without_init = set()
-    for module_name, module_type in model.named_modules():
-        if isinstance(module_type, torch.nn.LayerNorm) or isinstance(module_type, torch.nn.BatchNorm1d) or isinstance(module_type, torch.nn.BatchNorm2d) or isinstance(module_type, torch.nn.BatchNorm3d):
-            logging.info(f"Module without mup initialization: {module_name} {module_type}")
-            modules_without_init.add(module_name)
     params_without_init = set()
-    for param_name in param_names:
-        for module_name in modules_without_init:
-            if param_name.rsplit('.', 1)[0] == module_name:
-                params_without_init.add(param_name)
+    for module_name, module_type in model.named_modules():
+        if isinstance(module_type, torch.nn.LayerNorm) or isinstance(module_type, torch.nn.modules.batchnorm._BatchNorm):
+            logging.info(f"Module without mup initialization: {module_name} {module_type}")
+            params_without_init.update({get_param_name(model, param) for param in module_type.parameters()})
     logging.info(f"Params without mup initialization: {params_without_init}")
 
     for param_name in config.initialisation.init_scales_per_param.keys():
@@ -193,7 +188,7 @@ def main(config: ConfigBase):
             param_inf_types=param_inf_types,
             init_scale=init_scales,
             distribution=config.initialisation.init_distribution,
-            params_without_init=params_without_init
+            params_without_init=params_without_init,
         )
     elif config.parameterisation == ParameterisationType.SP:
         # If not using muP, initialise using SP.
@@ -201,12 +196,14 @@ def main(config: ConfigBase):
             named_params=named_params,
             init_scale=init_scales,
             distribution=config.initialisation.init_distribution,
+            params_without_init=params_without_init,
         )
     elif config.parameterisation == ParameterisationType.PYTORCH:
         torch_param_initialise(
             named_params=named_params,
             init_scale=init_scales,
             distribution=config.initialisation.init_distribution,
+            params_without_init=params_without_init,
         )
 
     # --- Construct the optimizer
