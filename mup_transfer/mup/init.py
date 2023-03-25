@@ -7,6 +7,7 @@ scalar multipliers.
 import math
 from typing import Sequence, Union
 import torch.nn as nn
+import logging
 from mup_transfer.config_schemas import DistributionType
 
 from mup_transfer.mup.inf_types import InfType
@@ -17,6 +18,7 @@ def mup_initialise(
     param_inf_types: dict[str, InfType],
     init_scale: Union[float, dict[str, float]],
     distribution: DistributionType,
+    params_without_init: list[str],
 ) -> None:
     """
     In-place initialise the parameters of a model using the MUP initialisation scheme described in
@@ -44,6 +46,9 @@ def mup_initialise(
 
     # Initialise all params
     for name, param in named_params:
+        if name in params_without_init:
+            logging.info(f"Parameter without mup initialization: {name}")
+            continue
         inf_type = param_inf_types[name]
         init_scale_for_param = init_scale[name] if isinstance(init_scale, dict) else init_scale
 
