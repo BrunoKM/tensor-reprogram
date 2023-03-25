@@ -67,6 +67,8 @@ class ParameterisationType(str, enum.Enum):
     """Standard Parameterisation"""
     PYTORCH = "PYTORCH"
     """PyTorch default initialisation scaling (differs from SP in how bias initialisation is scaled)"""
+    NONE = "NONE"
+    """Keep default initialization and apply the init scale(s) in-place to each parameter"""
 
 
 @dataclass
