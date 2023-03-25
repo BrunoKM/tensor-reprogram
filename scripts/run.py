@@ -157,7 +157,7 @@ def main(config: ConfigBase):
 
     params_without_init = set()
     for module_name, module_type in model.named_modules():
-        if isinstance(module_type, torch.nn.LayerNorm) or isinstance(module_type, torch.nn.modules.batchnorm._BatchNorm):
+        if isinstance(module_type, (torch.nn.LayerNorm, torch.nn.modules.batchnorm._BatchNorm)):
             logging.info(f"Module without mup initialization: {module_name} {module_type}")
             params_without_init.update({get_param_name(model, param) for param in module_type.parameters()})
     logging.info(f"Params without mup initialization: {params_without_init}")
