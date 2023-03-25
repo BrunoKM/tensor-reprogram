@@ -154,6 +154,18 @@ def main(config: ConfigBase):
     # Initialise the model with mup
     named_params = list(model.named_parameters())
     param_names = {name for name, _ in named_params}
+
+    params_without_init = set()
+    for module_name, module_type in model.named_modules():
+        if isinstance(module_type, torch.nn.LayerNorm) or isinstance(module_type, torch.nn.modules.batchnorm._BatchNorm):
+            logging.info(f"Module without mup initialization: {module_name} {module_type}")
+            params_without_init.update({get_param_name(model, param) for param in module_type.parameters()})
+    logging.info(f"Params without mup initialization: {params_without_init}")
+
+    for param_name in config.initialisation.init_scales_per_param.keys():
+        if param_name in params_without_init:
+            raise ValueError(f"Initialize parameters of a LayerNorm/BatchNorm layer: {param_name}")
+
     init_scales = {
         name: (
             config.initialisation.init_scales_per_param[name]
@@ -176,6 +188,7 @@ def main(config: ConfigBase):
             param_inf_types=param_inf_types,
             init_scale=init_scales,
             distribution=config.initialisation.init_distribution,
+            params_without_init=params_without_init,
         )
     elif config.parameterisation == ParameterisationType.SP:
         # If not using muP, initialise using SP.
@@ -183,12 +196,14 @@ def main(config: ConfigBase):
             named_params=named_params,
             init_scale=init_scales,
             distribution=config.initialisation.init_distribution,
+            params_without_init=params_without_init,
         )
     elif config.parameterisation == ParameterisationType.PYTORCH:
         torch_param_initialise(
             named_params=named_params,
             init_scale=init_scales,
             distribution=config.initialisation.init_distribution,
+            params_without_init=params_without_init,
         )
 
     # --- Construct the optimizer

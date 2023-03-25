@@ -7,6 +7,7 @@ scalar multipliers.
 import math
 from typing import Sequence, Union
 import torch.nn as nn
+import logging
 from mup_transfer.config_schemas import DistributionType
 
 from mup_transfer.mup.inf_types import InfType
@@ -17,6 +18,7 @@ def mup_initialise(
     param_inf_types: dict[str, InfType],
     init_scale: Union[float, dict[str, float]],
     distribution: DistributionType,
+    params_without_init: list[str],
 ) -> None:
     """
     In-place initialise the parameters of a model using the MUP initialisation scheme described in
@@ -44,6 +46,9 @@ def mup_initialise(
 
     # Initialise all params
     for name, param in named_params:
+        if name in params_without_init:
+            logging.info(f"Parameter with default initialization: {name}")
+            continue
         inf_type = param_inf_types[name]
         init_scale_for_param = init_scale[name] if isinstance(init_scale, dict) else init_scale
 
@@ -92,6 +97,7 @@ def standard_param_initialise(
     named_params: Sequence[tuple[str, nn.Parameter]],
     init_scale: Union[float, dict[str, float]],
     distribution: DistributionType,
+    params_without_init: list[str],
 ) -> None:
     """
     In-place initialise the parameters of a model using the standard_param initialisation scheme described in
@@ -108,6 +114,9 @@ def standard_param_initialise(
     """
     # Initialise all params
     for name, param in named_params:
+        if name in params_without_init:
+            logging.info(f"Parameter with default initialization: {name}")
+            continue
         init_scale_for_param = init_scale[name] if isinstance(init_scale, dict) else init_scale
         standard_param_initialise_param(param, init_scale=init_scale_for_param, distribution=distribution)
 
@@ -134,6 +143,7 @@ def torch_param_initialise(
     named_params: Sequence[tuple[str, nn.Parameter]],
     init_scale: Union[float, dict[str, float]],
     distribution: DistributionType,
+    params_without_init: list[str],
 ) -> None:
     """
     Args:
@@ -144,6 +154,9 @@ def torch_param_initialise(
     """
     # Initialise all params
     for name, param in named_params:
+        if name in params_without_init:
+            logging.info(f"Parameter with default initialization: {name}")
+            continue
         init_scale_for_param = init_scale[name] if isinstance(init_scale, dict) else init_scale
         # If parameter is a bias, find the matching weight to calculate fan_in with
         if name.endswith(".bias"):
