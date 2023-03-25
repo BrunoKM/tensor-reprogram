@@ -69,6 +69,7 @@ def main(config: ConfigBase):
             eval_batch_size=config.data_loader.eval_batch_size,
             num_workers=config.data_loader.num_workers,
             pin_memory=config.data_loader.pin_memory,
+            shuffle=config.data_loader.shuffle,
         )
     elif config.dataset_type == DatasetType.WIKITEXT:
         train_loader, eval_loaders = wikitext_constructor(
