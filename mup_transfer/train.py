@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Callable, Optional
 
 import torch
 import tqdm
@@ -15,6 +15,7 @@ def train(
     scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
     device: torch.device = torch.device('cpu'),
     logger: LoggerBase = NullLogger(),
+    post_step_callback: Optional[Callable[[], None]] = None,
 ) -> tuple[float, float]:
     """
     Train the model for one epoch. Returns the training loss for that epoch and accuracy.
@@ -44,5 +45,7 @@ def train(
 
         epoch_loss += loss.detach().item() * len(x)
         epoch_n_correct += n_correct
+        if post_step_callback is not None:
+            post_step_callback()
     N = len(train_loader.dataset)
     return epoch_loss / N, epoch_n_correct / N
