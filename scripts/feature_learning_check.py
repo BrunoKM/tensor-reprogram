@@ -51,7 +51,7 @@ def main(config: CoordCheckConfig):
     ###########################################################################
     # BELOW IDENTICAL TO run.py. SHOULD BE REFACTORED INTO A FUNCTION IN FUTURE
     ###########################################################################
-        logging.info(f"Hydra current working directory: {os.getcwd()}")
+    logging.info(f"Hydra current working directory: {os.getcwd()}")
     # --- Runtime setup (logging directories, etc.)
 
     # --- Set up logging
