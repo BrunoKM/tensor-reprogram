@@ -117,4 +117,9 @@ def wide_resnet_constructor(
         nn.Linear(64 * width_factor, 10),
     )
 
+    # Initialise
+    for module in model.modules():
+        if isinstance(module, nn.Conv2d):
+            nn.init.kaiming_normal_(module.weight, mode="fan_out", nonlinearity="relu")
+
     return model
