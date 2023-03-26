@@ -228,7 +228,7 @@ def main(config: ConfigBase):
         ) * config.optimization.global_lr
         for name, param in named_params
     }
-    logging.info(f"Learning rates per parameter: {lr_scale_per_param}")
+    logging.info(f"Base learning rates per parameter: {lr_scale_per_param}")
 
     if config.optimization.optimizer_type == OptimizerType.SGD:
         optim_constructor = torch.optim.SGD
