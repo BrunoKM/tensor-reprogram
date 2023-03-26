@@ -297,6 +297,8 @@ def main(config: ConfigBase):
         )
         logger.log_scalar("train.epoch_loss", epoch_loss)
         logger.log_scalar("train.epoch_accuracy", epoch_accuracy)
+        if float(epoch_loss) == float("nan"):
+            raise ValueError("Training loss is NaN")
         eval_and_log()
 
     # --- Save the final model
