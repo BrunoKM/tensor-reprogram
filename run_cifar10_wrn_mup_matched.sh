@@ -3,7 +3,7 @@
 #SBATCH --gres=gpu:rtx2080ti:1              # type and number of gpus
 #SBATCH --time=72:00:00                     # job will be cancelled after max. 72h
 #SBATCH --output=cifar10_wrn_mup_matched_%A_%a.out
-#SBATCH --array=5
+#SBATCH --array=0-10
 
 # print info about current job
 scontrol show job $SLURM_JOB_ID
