@@ -228,7 +228,7 @@ def main(config: ConfigBase):
         ) * config.optimization.global_lr
         for name, param in named_params
     }
-    logging.info(f"Learning rates per parameter: {lr_scale_per_param}")
+    logging.info(f"Base learning rates per parameter: {lr_scale_per_param}")
 
     if config.optimization.optimizer_type == OptimizerType.SGD:
         optim_constructor = torch.optim.SGD
@@ -297,6 +297,8 @@ def main(config: ConfigBase):
         )
         logger.log_scalar("train.epoch_loss", epoch_loss)
         logger.log_scalar("train.epoch_accuracy", epoch_accuracy)
+        if float(epoch_loss) == float("nan"):
+            raise ValueError("Training loss is NaN")
         eval_and_log()
 
     # --- Save the final model
