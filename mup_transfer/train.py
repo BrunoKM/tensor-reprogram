@@ -12,7 +12,7 @@ def train(
     train_loader: torch.utils.data.DataLoader,
     optim: torch.optim.Optimizer,
     clip_grad: float,
-    scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
+    scheduler: Optional[torch.optim.lr_scheduler._LRScheduler] = None,
     device: torch.device = torch.device('cpu'),
     logger: LoggerBase = NullLogger(),
 ) -> tuple[float, float]:
