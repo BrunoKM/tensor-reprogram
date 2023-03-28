@@ -1,10 +1,12 @@
 import os
+import math
 import hydra
 import omegaconf
 import torch
 import torch.nn as nn
 import tqdm
 import wandb
+import pprint
 import logging
 
 from functools import reduce
@@ -26,6 +28,7 @@ from mup_transfer.mup.init import mup_initialise, standard_param_initialise, tor
 from mup_transfer.mup.optim_params import get_adam_param_groups, get_mup_sgd_param_groups
 from mup_transfer.train import train
 from mup_transfer.eval import eval
+from mup_transfer.mup.inf_types import InfType
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -210,6 +213,59 @@ def main(config: ConfigBase):
     else:
         raise ValueError(f"Unknown parameterisation: {config.parameterisation}")
 
+    def _calculate_fan_in_and_fan_out(tensor):
+        dimensions = tensor.dim()
+        if dimensions < 2:
+            raise ValueError("Fan in and fan out can not be computed for tensor with fewer than 2 dimensions")
+
+        num_input_fmaps = tensor.size(1)
+        num_output_fmaps = tensor.size(0)
+        receptive_field_size = 1
+        if tensor.dim() > 2:
+            # math.prod is not always available, accumulate the product manually
+            # we could use functools.reduce but that is not supported by TorchScript
+            for s in tensor.shape[2:]:
+                receptive_field_size *= s
+        fan_in = num_input_fmaps #* receptive_field_size
+        fan_out = num_output_fmaps * receptive_field_size
+
+        return fan_in, fan_out
+
+    scales_dict = {}
+    lrs_dict = {}
+    for name, param in named_params:
+        #if name in params_without_init:
+        #    continue
+        if param.dim() >= 2:
+            fan_in, fan_out = _calculate_fan_in_and_fan_out(param)
+        else:
+            fan_in, fan_out = 64, 10  #_calculate_fan_in_and_fan_out(dict(*zip(named_params))[name.removesuffix('bias') + 'weight']) 
+        inf_type = param_inf_types[name]
+        match inf_type:
+            case InfType.INPUT_OR_BIAS:
+                if param.dim() < 2:
+                    scale = 1.0 / fan_in ** 0.5 / math.sqrt(3)
+                else:
+                    scale = fan_in ** 0.5 * math.sqrt(2) / (fan_out ** 0.5)
+                lr = 1 / param.shape[0]
+            case InfType.HIDDEN_WEIGHT:
+                scale = fan_in ** 0.5 * math.sqrt(2) / (fan_out ** 0.5)
+                lr = 1.0
+            case InfType.OUTPUT_WEIGHT:
+                scale = fan_in ** 0.5 / math.sqrt(3)
+                lr = fan_in
+            case _:
+                raise ValueError(f"Unrecognised infinite width type: {inf_type}")
+        scales_dict[name] = scale
+        lrs_dict[name] = lr
+    logging.info('transformed scales dict')
+    pprint.pprint(scales_dict)
+    logging.info('transformed lrs dict')
+    pprint.pprint(lrs_dict)
+    logging.info('std dict:')
+    std_dict = {name: param.std().item() for name, param in named_params}
+    pprint.pprint(std_dict)
+
     # --- Construct the optimizer
 
     # Validate that all the per_param_lr parameter names are valid:
@@ -257,6 +313,10 @@ def main(config: ConfigBase):
             {"params": [param], "lr": lr_scale_per_param[name]}
             for name, param in model.named_parameters()
         ]
+    for group in param_groups:
+        lr = group['lr']
+        print(f'effective lr: {lr}')
+
     optim = optim_constructor(
         params=param_groups,  # type: ignore
         lr=config.optimization.default_lr,
