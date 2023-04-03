@@ -5,10 +5,11 @@
 #SBATCH --output=cifar10_mlp_depth_%A_%a.out
 #SBATCH --array=4-14
 
-# print info about current job
+# Print info about current job.
 scontrol show job $SLURM_JOB_ID
 
-export WANDB_API_KEY=9a337dffa0b41297c8870d83df890ea39dc02163
+# Add your wandb api key here.
+export WANDB_API_KEY=XXX
 
 # Assuming you have activated your conda environment
 for depth in 3 4 5 6; do

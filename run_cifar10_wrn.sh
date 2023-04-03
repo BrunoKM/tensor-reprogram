@@ -5,10 +5,11 @@
 #SBATCH --output=cifar10_wrn_%A_%a.out
 #SBATCH --array=0-10
 
-# print info about current job
+# Print info about current job.
 scontrol show job $SLURM_JOB_ID
 
-export WANDB_API_KEY=9a337dffa0b41297c8870d83df890ea39dc02163
+# Add your wandb api key here.
+export WANDB_API_KEY=XXX
 
 if [ $SLURM_ARRAY_TASK_ID == 0 ]
 then
